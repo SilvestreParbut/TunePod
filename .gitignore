@@ -1,0 +1,30 @@
+# Archivos generados por Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos del sistema o editor
+*.swp
+*~
+.DS_Store
+
+# Archivos compilados de C
+ipod_read
+ipod_write
+ipod_copy
+ipod_clean
+
+# Archivos de empaquetado (el .deb no va aquí)
+*.deb
+*.tar.gz
+tunepod-package/build/
+
+# Carpetas personales o temporales
+backups/
+test-ipod/
+*.log
+
+# Mis notas personales de desarrollo (no forman parte de la app)
+*.txt
+
+hola.pls
