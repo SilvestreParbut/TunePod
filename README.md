@@ -1,44 +1,42 @@
 # TunePod 🎵
 
-**TunePod** es una aplicación de código abierto para Linux que funciona como reproductor de música, gestor de podcasts, editor de metadatos, sincronizador y restaurador de firmware para el iPod. Está diseñado para ser ligero, rápido y fácil de usar, con soporte para múltiples idiomas (español e inglés).
+**TunePod** is an open-source application for Linux that functions as a music player, podcast manager, and metadata editor. What sets it apart is its ability to not only handle synchronization but also restore the firmware for 1st through 4th generation iPod Classic models, as well as 1st and 2nd generation iPod Mini models. It is designed to be lightweight, fast, and user-friendly, with bilingual support for Spanish and English.
 
-## Características
+## Features
 
-*   **Reproductor de música:** Reproduce tus archivos locales (.mp3, .m4a, .flac, .ogg, .wav).
-*   **Gestor de Podcasts:** Busca, suscríbete y descarga episodios directamente desde la app.
-*   **Editor de metadatos:** Edita títulos, artistas, álbumes y carátulas de tus canciones.
-*   **Sincronización con iPod:** Copia música, gestiona listas de reproducción y sincroniza estadísticas (reproducciones y valoraciones).
-*   **Restauración de firmware:** Incluye herramientas para restaurar iPods de 1ª a 4ª generación y Minis.
-*   **Interfaz adaptable:** Modo oscuro/claro y traducciones automáticas (Español/Inglés).
+*   **Music Player:** Play your local files (.mp3, .m4a, .flac, .ogg, .wav).
+*   **Podcast Manager:** Search for, subscribe to, and download episodes directly from the app.
+*   **Metadata Editor:** Edit song titles, artists, albums, and cover art.
+*   **iPod Synchronization:** Copy music, manage playlists, and sync statistics (play counts and ratings).
+*   **Firmware Restoration:** Includes tools to restore 1st–4th generation iPods and iPod Minis.
+*   **Adaptable Interface:** Dark/light mode and bilingual support (Spanish/English).
 
-## Instalación (desde el código fuente)
+## Installation (from source code)
 
-TunePod requiere Python 3, GTK, GStreamer y las librerías de desarrollo de `libgpod`.
+TunePod requires Python 3, GTK, GStreamer, and the `libgpod` development libraries. 1.  Clone the repository:
+git clone https://github.com/SilvestreParbut/TunePod.git
+cd TunePod
 
-1.  Clona el repositorio:
-    git clone https://github.com/SilvestreParbut/TunePod.git
-    cd TunePod
+2.  Run the application:
+python3 player.py
 
-2.  Ejecuta la aplicación:
-    python3 player.py
+## Creating the .deb installer
 
-## Crear el instalador .deb
+If you prefer to install TunePod as a package on your system, you can generate the `.deb` file manually:
 
-Si prefieres instalar TunePod como un paquete en tu sistema, puedes generar el archivo `.deb` manualmente:
+1.  Go to the packaging folder:
+cd tunepod-package
 
-1.  Ve a la carpeta del empaquetado:
-    cd tunepod-package
+2.  Run the build script:
+bash build_deb.sh
 
-2.  Ejecuta el script de construcción:
-    bash build_deb.sh
+3.  Install the generated package:
+sudo apt install ./tunepod_*.deb
 
-3.  Instala el paquete generado:
-    sudo apt install ./tunepod_*.deb
+## Contributing
 
-## Contribuir
+If you encounter any bugs or have an idea to improve TunePod, feel free to open an **Issue** or submit a **Pull Request**. Any help is welcome!
 
-Si encuentras algún error o tienes una idea para mejorar TunePod, siéntete libre de abrir un **Issue** o enviar un **Pull Request**. ¡Toda ayuda es bienvenida!
+## License
 
-## Licencia
-
-Este proyecto se distribuye bajo los términos de la licencia **GPL-3.0**. Consulta el archivo `LICENSE` para más detalles.
+This project is distributed under the terms of the **GPL-3.0** license. See the `LICENSE` file for more details.
