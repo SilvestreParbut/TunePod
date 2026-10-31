@@ -1,6 +1,6 @@
 # TunePod 🎵
 
-**TunePod** es una aplicación de código abierto para Linux que funciona como reproductor de música, gestor de podcasts, editor de metadatos y sincronizador y restaurador de firmware para el iPod. Está diseñado para ser ligero, rápido y fácil de usar, con soporte para múltiples idiomas (español e inglés).
+**TunePod** es una aplicación de código abierto para Linux que funciona como reproductor de música, gestor de podcasts, editor de metadatos, sincronizador y restaurador de firmware para el iPod. Está diseñado para ser ligero, rápido y fácil de usar, con soporte para múltiples idiomas (español e inglés).
 
 ## Características
 
