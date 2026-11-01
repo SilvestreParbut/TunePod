@@ -38,7 +38,7 @@ import ipod
 import ipod_write
 import ipod_sync
 import ipod_copy
-APP_VERSION = "1.0.2"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
+APP_VERSION = "1.0.4"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
 Gst.init(None)
 try:
     Notify.init("TunePod")
@@ -1082,7 +1082,7 @@ class PlaylistWindow(Gtk.Window):
         """Muestra la ventana Acerca de."""
         dialog = Gtk.AboutDialog(transient_for=self, modal=True)
         dialog.set_program_name("TunePod")
-        dialog.set_version("1.0.2") # <-- Puedes cambiar esto con cada release
+        dialog.set_version("1.0.4") # <-- Puedes cambiar esto con cada release
         dialog.set_comments(_("Reproductor de música y gestor de iPod para Linux"))
         dialog.set_license_type(Gtk.License.GPL_3_0)
         dialog.set_website("https://github.com/SilvestreParbut/TunePod")
@@ -1965,15 +1965,32 @@ class PlaylistWindow(Gtk.Window):
             else:
                 self.cover_image.set_from_icon_name("audio-x-generic", Gtk.IconSize.DIALOG)
     def _load_podcast_cover(self, podcast_title):
+        """Carga la carátula del podcast. Corre en un hilo secundario."""
+        if not podcast_title:
+            GLib.idle_add(self._set_cover_art, None)
+            return
+
         artwork_url = None
-        for s in self.subscriptions:
-            if s.get("title") == podcast_title:
+
+        # 1. Buscar en suscripciones comparando por título normalizado
+        #    (strip + lowercase). Itera sobre una copia para evitar
+        #    problemas si el usuario suscribe/desuscribe mientras tanto.
+        pt_norm = (podcast_title or "").strip().lower()
+        for s in list(self.subscriptions):
+            title = (s.get("title") or "").strip().lower()
+            if title == pt_norm:
                 artwork_url = s.get("artwork_url") or None
-                break
+                if artwork_url:
+                    break
+
+        # 2. Si no hay en suscripciones, usar el feed cargado actualmente
+        #    (sin comparar título: si estamos reproduciendo un episodio,
+        #    este es el feed que el usuario está viendo).
         if not artwork_url and self.current_feed_data:
-            if self.current_feed_data.get("title") == podcast_title:
-                artwork_url = self.current_feed_data.get("image_url") or None
+            artwork_url = self.current_feed_data.get("image_url") or None
+
         if not artwork_url:
+            print(f"[podcast_cover] Sin artwork_url para '{podcast_title}'")
             GLib.idle_add(self._set_cover_art, None)
             return
 
@@ -1982,6 +1999,7 @@ class PlaylistWindow(Gtk.Window):
         h = hashlib.sha1(artwork_url.encode("utf-8")).hexdigest()
         cache_path = os.path.join(cache_dir, h + ".jpg")
 
+        # 3. Intentar desde caché local (rápido, sin red)
         if os.path.exists(cache_path) and os.path.getsize(cache_path) > 0:
             try:
                 pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
@@ -1991,6 +2009,7 @@ class PlaylistWindow(Gtk.Window):
             except Exception:
                 pass
 
+        # 4. Descargar la carátula (esto corre en hilo, no bloquea GTK)
         try:
             req = urllib.request.Request(
                 artwork_url, headers={"User-Agent": "TunePod/0.1"})
@@ -5316,6 +5335,20 @@ class PlaylistWindow(Gtk.Window):
             return False
         if self.current_uri is None:
             return True
+
+        # IMPORTANTE: durante buffering / transición de estado, GStreamer
+        # puede bloquear el hilo de GTK si llamamos query_duration /
+        # query_position. Solo consultamos cuando el pipeline está estable.
+        try:
+            _, state, pending = self.playbin.get_state(0)
+        except Exception:
+            return True
+        if pending != Gst.State.VOID_PENDING:
+            # El pipeline está en transición (buffering, cambio de estado…)
+            return True
+        if state not in (Gst.State.PLAYING, Gst.State.PAUSED):
+            return True
+
         if self.duration_ns == 0:
             ok, dur = self.playbin.query_duration(Gst.Format.TIME)
             if ok and dur > 0:
@@ -5660,7 +5693,6 @@ class PlaylistWindow(Gtk.Window):
                 break
         self.episodes_menu_download.set_sensitive(has_pending)
 
-
     def on_episode_activated(self, tree, path, column):
         model = tree.get_model()
         it = model.get_iter(path)
@@ -5668,30 +5700,46 @@ class PlaylistWindow(Gtk.Window):
         title = model.get_value(it, 0)
         if not audio_url:
             return
+
         self.current_index = -1
         self.current_uri = audio_url
         self.duration_ns = 0
         self.pos_label.set_text("0:00")
         self.dur_label.set_text("0:00")
         self.progress.set_value(0)
+
+        # Cambio de stream: GStreamer maneja la transición internamente.
+        # No hace falta esperar; set_state es asíncrono.
         self.playbin.set_state(Gst.State.NULL)
         self.playbin.set_property("uri", audio_url)
         self.playbin.set_state(Gst.State.PLAYING)
         self._set_play_icon(True)
+
         self.now_playing_label.set_text(f"[Podcast] {title}")
-        self.np_title.set_markup(f"<b><span size='large'>{GLib.markup_escape_text(title)}</span></b>")
-        self.np_artist.set_markup(f_("<span size='medium'>Podcast</span>"))
+        self.np_title.set_markup(
+            f"<b><span size='large'>{GLib.markup_escape_text(title)}</span></b>")
+        self.np_artist.set_markup(_("<span size='medium'>Podcast</span>"))
         self.np_album.set_markup(_("<span size='small'></span>"))
-        self.cover_image.set_from_icon_name("audio-x-generic", Gtk.IconSize.DIALOG)
-        self.cover_image.set_pixel_size(296)
-        podcast_title = self._current_podcast_title() or "Podcast"
-        threading.Thread(
-            target=self._load_podcast_cover,
-            args=(podcast_title,),
-            daemon=True,
-        ).start()
+
+        # Placeholder cuadrado mientras llega la carátula real
+        placeholder = self._make_square_placeholder(296)
+        if placeholder:
+            self.cover_image.set_from_pixbuf(placeholder)
+        else:
+            self.cover_image.set_from_icon_name("audio-x-generic", Gtk.IconSize.DIALOG)
+            self.cover_image.set_pixel_size(296)
+
+        podcast_title = self._current_podcast_title()
+        if podcast_title:
+            threading.Thread(
+                target=self._load_podcast_cover,
+                args=(podcast_title,),
+                daemon=True,
+            ).start()
+
         self.reset_lyrics()
-        self.lyrics_view.get_buffer().set_text(_('Este es un episodio de podcast, no tiene letra.'))
+        self.lyrics_view.get_buffer().set_text(
+            _('Este es un episodio de podcast, no tiene letra.'))
 
     def on_download_selected(self, *args):
         sel = self.episodes_view.get_selection()
