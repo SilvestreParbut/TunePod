@@ -423,10 +423,34 @@ class PlaylistWindow(Gtk.Window):
         self.stack = Gtk.Stack()
         self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
         self.stack.set_transition_duration(150)
-        self.stack_switcher = Gtk.StackSwitcher()
-        self.stack_switcher.set_stack(self.stack)
+        # Botones de navegación propios (RadioButtons agrupados) en lugar
+        # de Gtk.StackSwitcher. Necesitamos detectar el clic incluso cuando
+        # la pestaña "Álbumes" ya está activa, para forzar la cuadrícula
+        # completa de todos los álbumes.
+        self.stack_switcher = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        self.stack_switcher.get_style_context().add_class("linked")
         self.stack_switcher.set_halign(Gtk.Align.CENTER)
         self.stack_switcher.set_margin_bottom(4)
+
+        self._stack_buttons = {}
+        _stack_items = [
+            ("artists", _("Artistas")),
+            ("albums", _("Álbumes")),
+            ("songs", _("Canciones")),
+            ("ipod", "iPod"),
+        ]
+        _prev_btn = None
+        for _name, _label in _stack_items:
+            if _prev_btn is None:
+                _btn = Gtk.RadioButton(label=_label)
+            else:
+                _btn = Gtk.RadioButton.new_with_label_from_widget(_prev_btn, _label)
+            _btn.set_mode(False)  # Modo "toggle button", no radio con círculo
+            _btn.connect("clicked", lambda w, n=_name: self._on_stack_button_clicked(n))
+            self.stack_switcher.pack_start(_btn, False, False, 0)
+            self._stack_buttons[_name] = _btn
+            _prev_btn = _btn
+        self._stack_buttons["artists"].set_active(True)
 
         # Label "fantasma" para compatibilidad con el código existente
         self.now_playing_label = Gtk.Label(label="—")
@@ -1815,13 +1839,18 @@ class PlaylistWindow(Gtk.Window):
             self.toggle_lyrics_btn.set_label(_("Mostrar letra"))
         else:
             self.toggle_lyrics_btn.set_label(_("Ocultar letra"))
-
     def _make_square_placeholder(self, size=296):
-        """Crea una imagen cuadrada gris con el icono de música centrado."""
+        """Crea una imagen cuadrada gris con el icono de música centrado.
+        Cachea el resultado por tamaño para no regenerarlo en cada rebuild."""
+        if not hasattr(self, "_placeholder_cache"):
+            self._placeholder_cache = {}
+        cached = self._placeholder_cache.get(size)
+        if cached is not None:
+            return cached
         try:
             pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, False, 8, size, size)
-            pixbuf.fill(0x3A3A3AFF) # Gris oscuro neutro
-            
+            pixbuf.fill(0x3A3A3AFF)  # Gris oscuro neutro
+
             theme = Gtk.IconTheme.get_default()
             icon_info = theme.lookup_icon("audio-x-generic", size // 2, 0)
             if icon_info:
@@ -1829,15 +1858,13 @@ class PlaylistWindow(Gtk.Window):
                 icon_size = size // 2
                 x = (size - icon_size) // 2
                 y = (size - icon_size) // 2
-                
-                # Dibujar el icono sobre el cuadrado
                 icon_pixbuf.composite(
                     pixbuf, x, y, icon_size, icon_size,
                     x, y, 1.0, 1.0, GdkPixbuf.InterpType.BILINEAR, 255
                 )
+            self._placeholder_cache[size] = pixbuf
             return pixbuf
         except Exception:
-            # Fallback al icono estándar si algo falla
             return None
 
     def _load_cover_art(self, uri, artist="", album=""):
@@ -2185,8 +2212,63 @@ class PlaylistWindow(Gtk.Window):
         if view_name == "songs" and self.current_uri:
             self._select_song_row_by_uri(self.current_uri)
 
+    def _on_stack_button_clicked(self, name):
+        """Handler de los botones superiores (Artistas/Álbumes/Canciones/iPod).
+        El botón 'Álbumes' SIEMPRE muestra la cuadrícula completa con todos
+        los álbumes de la biblioteca, incluso si ya estábamos viendo el
+        detalle de un álbum."""
+        # Guard: si estamos dentro de _sync_stack_buttons, no hacer nada.
+        # GTK puede emitir 'clicked' al llamar set_active(True), lo que
+        # reentraría aquí y provocaría RecursionError.
+        if getattr(self, "_syncing_stack_buttons", False):
+            return
+
+        if name == "albums":
+            # Limpiar búsqueda silenciosamente (sin disparar filtro global)
+            self.search_entry.handler_block_by_func(self.on_search_changed)
+            self.search_entry.set_text("")
+            self.search_query = ""
+            self.search_entry.handler_unblock_by_func(self.on_search_changed)
+
+            # Forzar la cuadrícula con TODOS los álbumes
+            self.albums_inner_stack.set_visible_child_name("grid")
+            self._rebuild_albums_grid(query="")
+            self.albums_grid_dirty = False
+            self.status_label.set_text(_('Mostrando todos los álbumes'))
+
+            # Resetear el contexto del botón interno "Volver a [artista]"
+            self._album_back_context = None
+            if hasattr(self, "_album_back_label"):
+                self._album_back_label.set_text(_("Volver a Álbumes"))
+
+        if self.stack.get_visible_child_name() != name:
+            self.stack.set_visible_child_name(name)
+        # NO llamamos _sync_stack_buttons aquí: el clic ya activa el botón
+        # visualmente por GTK. La sincronización se hace en
+        # on_stack_view_changed, que es el punto único para cambios
+        # programáticos del stack.
+
+    def _sync_stack_buttons(self, active_name):
+        """Sincroniza visualmente los botones superiores cuando el stack
+        cambia programáticamente (p. ej. desde Now Playing o al abrir un
+        álbum). Usa un guard para evitar recursión si set_active emite
+        'clicked'."""
+        if not hasattr(self, "_stack_buttons"):
+            return
+        if getattr(self, "_syncing_stack_buttons", False):
+            return
+        btn = self._stack_buttons.get(active_name)
+        if btn is None or btn.get_active():
+            return
+        self._syncing_stack_buttons = True
+        try:
+            btn.set_active(True)
+        finally:
+            self._syncing_stack_buttons = False
+
     def on_stack_view_changed(self, stack, pspec):
         name = stack.get_visible_child_name()
+        self._sync_stack_buttons(name)
         if name == "artists" and self.artist_tree_dirty:
             self._rebuild_artists_view(query=self.search_query)
             self.artist_tree_dirty = False
@@ -3065,10 +3147,15 @@ class PlaylistWindow(Gtk.Window):
             return pixbuf
 
     def _load_artist_image_worker(self, uri, img_widget):
-        """Carga la imagen para el artista en segundo plano."""
-        pixbuf = self._load_cover_pixbuf_for_uri(uri, 64)
-        if pixbuf:
-            circular = self._make_circular_pixbuf(pixbuf, 64)
+        if not hasattr(self, "_artist_cover_mem"):
+            self._artist_cover_mem = {}
+        circular = self._artist_cover_mem.get(uri)
+        if circular is None:
+            pixbuf = self._load_cover_pixbuf_for_uri(uri, 64)
+            if pixbuf:
+                circular = self._make_circular_pixbuf(pixbuf, 64)
+                self._artist_cover_mem[uri] = circular
+        if circular:
             GLib.idle_add(self._update_artist_image, img_widget, circular)
 
     def _update_artist_image(self, img_widget, pixbuf):
@@ -4479,9 +4566,15 @@ class PlaylistWindow(Gtk.Window):
         return False
 
     def _load_album_cover_worker(self, uri, img_widget):
-        # Esta función corre en un hilo secundario
+        if not hasattr(self, "_album_cover_mem"):
+            self._album_cover_mem = {}
+        cached = self._album_cover_mem.get(uri)
+        if cached is not None:
+            GLib.idle_add(self._update_album_cover, img_widget, cached)
+            return
         pixbuf = self._load_cover_pixbuf_for_uri(uri, 140)
         if pixbuf:
+            self._album_cover_mem[uri] = pixbuf
             GLib.idle_add(self._update_album_cover, img_widget, pixbuf)
 
     def _update_album_cover(self, img_widget, pixbuf):
