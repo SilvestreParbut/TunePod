@@ -364,25 +364,49 @@ class PlaylistWindow(Gtk.Window):
         self.btn_add_music.connect("clicked", self.on_add_music)
         topbar.pack_start(self.btn_add_music, False, False, 0)
 
-        # Spacer que empuja el search a la derecha
+        # Spacer que empuja todo a la derecha
         spacer = Gtk.Box()
         spacer.set_hexpand(True)
         topbar.pack_start(spacer, True, True, 0)
 
+        # 1. Menú de hamburguesa (SE EMPAQUETA PRIMERO PARA QUE QUEDE EN EL EXTREMO DERECHO)
+        self.menu_btn = Gtk.MenuButton()
+        self.menu_btn.set_relief(Gtk.ReliefStyle.NONE)
+        self.menu_btn.set_image(Gtk.Image.new_from_icon_name("open-menu-symbolic", Gtk.IconSize.BUTTON))
+        self.menu_btn.set_tooltip_text(_('Menú principal'))
+        
+        menu = Gtk.Menu()
+        item_manual = Gtk.MenuItem(label=_("Manual de usuario"))
+        item_manual.connect("activate", self.on_manual_clicked)
+        menu.append(item_manual)
+        
+        item_about = Gtk.MenuItem(label=_("Acerca de TunePod"))
+        item_about.connect("activate", self.on_about_clicked)
+        menu.append(item_about)
+        
+        item_update = Gtk.MenuItem(label=_("Buscar actualizaciones…"))
+        item_update.connect("activate", self.on_check_updates)
+        menu.append(item_update)
+        
+        self.menu_btn.set_popup(menu)
+        menu.show_all()
+        topbar.pack_end(self.menu_btn, False, False, 0)
+
+        # 2. Buscador (SE EMPAQUETA AL FINAL, QUEDA A LA IZQUIERDA DEL MODO OSCURO)
         self.search_entry = Gtk.SearchEntry()
         self.search_entry.set_placeholder_text(_('Buscar…'))
         self.search_entry.set_width_chars(20)
         self.search_entry.connect("search-changed", self.on_search_changed)
         topbar.pack_end(self.search_entry, False, False, 0)
 
-        # Botón de Modo Oscuro/Claro
+        # 3. Botón de Modo Oscuro/Claro (SE EMPAQUETA DESPUÉS, QUEDA A LA IZQUIERDA DEL MENÚ)
         self.dark_mode = self.prefs.get("dark_mode", False)
         self.dark_btn = Gtk.Button()
         self.dark_btn.set_relief(Gtk.ReliefStyle.NONE)
         self.dark_btn.set_tooltip_text(_('Alternar Modo Oscuro'))
         self.dark_btn.connect("clicked", self.on_toggle_dark_mode)
         topbar.pack_end(self.dark_btn, False, False, 0)
-        
+
         # Aplicar el estado inicial (claro u oscuro) al arrancar
         self._apply_theme(self.dark_mode)
 
@@ -1027,6 +1051,124 @@ class PlaylistWindow(Gtk.Window):
         
         self._apply_theme(self.dark_mode)
 
+    def on_about_clicked(self, widget):
+        """Muestra la ventana Acerca de."""
+        dialog = Gtk.AboutDialog(transient_for=self, modal=True)
+        dialog.set_program_name("TunePod")
+        dialog.set_version("1.0") # <-- Puedes cambiar esto con cada release
+        dialog.set_comments(_("Reproductor de música y gestor de iPod para Linux"))
+        dialog.set_license_type(Gtk.License.GPL_3_0)
+        dialog.set_website("https://github.com/SilvestreParbut/TunePod")
+        dialog.set_logo_icon_name("tunepod")
+        dialog.run()
+        dialog.destroy()
+
+    def on_manual_clicked(self, widget):
+        """Muestra el manual de usuario en una ventana."""
+        dialog = Gtk.Dialog(title=_("Manual de usuario"), transient_for=self, modal=True)
+        dialog.set_default_size(750, 650)
+        dialog.add_button(_("Cerrar"), Gtk.ResponseType.CLOSE)
+        
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroll.set_hexpand(True)
+        scroll.set_vexpand(True)
+        
+        textview = Gtk.TextView()
+        textview.set_wrap_mode(Gtk.WrapMode.WORD)
+        textview.set_editable(False)
+        # Márgenes para que el texto respire y no esté pegado a los bordes
+        textview.set_left_margin(20)
+        textview.set_right_margin(20)
+        textview.set_top_margin(20)
+        textview.set_bottom_margin(20)
+        
+        manual_text = _(
+            "¡Bienvenido a TunePod!\n\n"
+            "TunePod es tu centro de música y iPod para Linux. Aquí tienes una guía rápida de todo lo que puedes hacer:\n\n"
+            "=== BIBLIOTECA DE MÚSICA ===\n"
+            "• Añadir música: Usa el botón 'Agregar música' para importar archivos individuales o carpetas enteras.\n"
+            "• Organización: Explora tu música por Artistas, Álbumes o Canciones.\n"
+            "• Listas de reproducción: Crea listas manuales o listas 'inteligentes' basadas en reglas (ej. valoración > 4 estrellas).\n"
+            "• Búsqueda: Usa la barra superior para encontrar canciones al instante.\n\n"
+            "=== REPRODUCCIÓN ===\n"
+            "• Controles: Play/Pausa, Siguiente/Anterior, Aleatorio y Repetir.\n"
+            "• Cola de reproducción: Añade canciones a la cola para escucharlas después.\n"
+            "• Letras: Pulsa 'Mostrar letra' para buscar la letra de la canción actual en internet.\n"
+            "• Notificaciones: Recibirás notificaciones de escritorio con la carátula al cambiar de canción.\n\n"
+            "=== METADATOS Y CARÁTULAS ===\n"
+            "• Edición: Haz clic derecho en una canción o álbum y selecciona 'Información' para editar título, artista, etc.\n"
+            "• Buscar carátulas: Usa el botón 'Buscar carátula' para descargar arte desde iTunes o Deezer.\n"
+            "• Aplicar a todo el álbum: Al editar un álbum, puedes aplicar los cambios a todas sus canciones de golpe.\n\n"
+            "=== GESTIÓN DEL IPOD ===\n"
+            "• Conexión: Conecta tu iPod por USB y TunePod lo detectará automáticamente.\n"
+            "• Sincronización: Usa 'Sincronización global' para mantener tu iPod idéntico a tu PC, o 'Sincronización selectiva' para elegir qué enviar.\n"
+            "• Exploración: Haz clic en 'Ver contenido' para examinar los archivos que ya están en el iPod.\n"
+            "• Copiar al PC: Puedes extraer música de tu iPod a tu computadora.\n"
+            "• Restaurar: Si tu iPod falla, usa 'Restaurar Firmware' (requiere poner el ipod en modo disco, para los modelos de primera a cuarta generación, incluyendo iPod Photo, se requiere un cargador firewire, ).\n\n"
+            "=== PODCASTS ===\n"
+            "• Descubrir: Busca podcasts por nombre en la pestaña Podcasts.\n"
+            "• Suscripciones: Suscríbete y descarga episodios con un solo clic.\n"
+            "• Enviar al iPod: Los episodios descargados se pueden transferir directamente a tu iPod.\n\n"
+            "=== PERSONALIZACIÓN ===\n"
+            "• Modo oscuro: Usa el botón de la luna en la barra superior.\n"
+            "• Actualizaciones: Usa el menú (☰) para comprobar si hay nuevas versiones de TunePod.\n"
+        )
+        textview.get_buffer().set_text(manual_text)
+        
+        scroll.add(textview)
+        dialog.get_content_area().pack_start(scroll, True, True, 0)
+        dialog.show_all()
+        dialog.run()
+        dialog.destroy()
+
+    def on_check_updates(self, widget):
+        """Busca actualizaciones en GitHub."""
+        import urllib.request
+        import json
+        
+        self.status_label.set_text(_("Buscando actualizaciones en GitHub…"))
+        
+        def worker():
+            try:
+                url = "https://api.github.com/repos/SilvestreParbut/TunePod/releases/latest"
+                req = urllib.request.Request(url, headers={"User-Agent": "TunePod"})
+                with urllib.request.urlopen(req, timeout=10) as r:
+                    data = json.loads(r.read().decode())
+                
+                latest_tag = data.get("tag_name", "Desconocida")
+                html_url = data.get("html_url", "")
+                release_name = data.get("name", "")
+                
+                GLib.idle_add(self._show_update_dialog, latest_tag, html_url, release_name)
+            except Exception as e:
+                GLib.idle_add(self.status_label.set_text, _f("Error al buscar actualizaciones: {}", str(e)))
+        
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _show_update_dialog(self, latest_tag, html_url, release_name):
+        """Muestra el diálogo con la información de la actualización."""
+        self.status_label.set_text(_("Búsqueda de actualizaciones finalizada"))
+        
+        dialog = Gtk.MessageDialog(
+            transient_for=self, modal=True,
+            message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.OK,
+            text=_f("Última versión disponible: {}", latest_tag)
+        )
+        
+        if release_name:
+            dialog.format_secondary_text(_f("{} \n\n¿Deseas abrir la página de descarga en tu navegador?", release_name))
+        else:
+            dialog.format_secondary_text(_("¿Deseas abrir la página de descarga en tu navegador?"))
+        
+        if dialog.run() == Gtk.ResponseType.OK:
+            try:
+                subprocess.run(["xdg-open", html_url])
+            except Exception:
+                pass
+        dialog.destroy()
+
     # ---------- Reordenar con drag & drop ----------
 
     def _update_move_menu_sensitivity(self):
@@ -1667,9 +1809,9 @@ class PlaylistWindow(Gtk.Window):
         showing = self.lyrics_revealer.get_reveal_child()
         self.lyrics_revealer.set_reveal_child(not showing)
         if showing:
-            self.toggle_lyrics_btn.set_label("Mostrar letra")
+            self.toggle_lyrics_btn.set_label(_("Mostrar letra"))
         else:
-            self.toggle_lyrics_btn.set_label("Ocultar letra")
+            self.toggle_lyrics_btn.set_label(_("Ocultar letra"))
 
     def _make_square_placeholder(self, size=296):
         """Crea una imagen cuadrada gris con el icono de música centrado."""
@@ -2440,7 +2582,7 @@ class PlaylistWindow(Gtk.Window):
             return
 
         self.status_label.set_text(
-            f"Sincronizando{len(tracks_to_copy)} canciones al iPod…")
+            _f("Sincronizando {} canciones al iPod…", len(tracks_to_copy)))
 
         def worker():
             ok, out, err = ipod_copy.copy_tracks(
@@ -2787,7 +2929,7 @@ class PlaylistWindow(Gtk.Window):
 
         music_dir = os.path.join(home, "Música")
         if os.path.isdir(music_dir):
-            for root, _, files in os.walk(music_dir):
+            for root, _dir, files in os.walk(music_dir):
                 for f in files:
                     if normalize_text(f) == base_norm:
                         return GLib.filename_to_uri(os.path.join(root, f), None)
@@ -3987,7 +4129,7 @@ class PlaylistWindow(Gtk.Window):
                 self.playlists.append(pl)
                 playlists_mod.save(self.playlists)
                 self._rebuild_playlists_listbox(select_id=pl["id"])
-                self.status_label.set_text(f"Canción añadida a nueva lista «{new_name}»")
+                self.status_label.set_text(_f("Canción añadida a nueva lista «{}»", new_name))
             elif manual_playlists:
                 pl_id = combo.get_active_id()
                 pl = self._get_playlist(pl_id)
@@ -3996,9 +4138,9 @@ class PlaylistWindow(Gtk.Window):
                         pl["uris"].append(self.current_uri)
                         playlists_mod.save(self.playlists)
                         self._rebuild_playlists_listbox(select_id=self.current_playlist_id)
-                        self.status_label.set_text(f"Canción añadida a «{pl['name']}»")
+                        self.status_label.set_text(_f("Canción añadida a «{}»", pl['name']))
                     else:
-                        self.status_label.set_text(f"La canción ya está en «{pl['name']}»")
+                        self.status_label.set_text(_f("La canción ya está en «{}»", pl['name']))
             else:
                 self.status_label.set_text(_('No se seleccionó lista ni se creó una nueva'))
 
@@ -4583,7 +4725,7 @@ class PlaylistWindow(Gtk.Window):
         
         # 2. Recopilar los archivos de audio que haya dentro
         paths = []
-        for root, _, files in os.walk(path):
+        for root, _dir, files in os.walk(path):
             for f in sorted(files):
                 if f.lower().endswith(AUDIO_EXT):
                     paths.append(os.path.join(root, f))
@@ -4608,7 +4750,7 @@ class PlaylistWindow(Gtk.Window):
             folder = chooser.get_filename()
             chooser.destroy()
             paths = []
-            for root, _, files in os.walk(folder):
+            for root, _dir, files in os.walk(folder):
                 for f in sorted(files):
                     if f.lower().endswith(AUDIO_EXT):
                         paths.append(os.path.join(root, f))
@@ -5317,7 +5459,7 @@ class PlaylistWindow(Gtk.Window):
             for ep in eps:
                 downloaded = self._is_downloaded(podcast_title or "Podcast", ep["title"])
                 if downloaded:
-                    status_text = "Descargado"
+                    status_text = _("Descargado")
                     progress_int = 100
                     has_prog = True
                     no_prog = False
@@ -5328,7 +5470,7 @@ class PlaylistWindow(Gtk.Window):
                     has_prog = False
                     no_prog = True
                 self.episodes_store.append([ep["title"], ep["pub_date"], ep["duration"], status_text, progress_int, ep["audio_url"], has_prog, no_prog])
-            self.episodes_status.set_text(f"{len(eps)} episodios ({n_downloaded} descargados)")
+            self.episodes_status.set_text(_f("{} episodios ({} descargados)", len(eps), n_downloaded))
             return False
         threading.Thread(target=worker, daemon=True).start()
 
@@ -5473,7 +5615,7 @@ class PlaylistWindow(Gtk.Window):
         self.download_bar.set_fraction(0.0)
         remaining = len(self.download_queue) + 1
         self.download_bar.set_text(f"En cola: {remaining} restante(s). Descargando: {item['title'][:50]}")
-        model.set_value(it, 3, "Iniciando…")
+        model.set_value(it, 3, _("Iniciando…"))
         model.set_value(it, 4, 0)
         model.set_value(it, 6, True)
         model.set_value(it, 7, False)
@@ -5489,12 +5631,12 @@ class PlaylistWindow(Gtk.Window):
                 try:
                     it = model.get_iter(ref.get_path())
                     if err:
-                        model.set_value(it, 3, f"Error: {err[:40]}")
+                        model.set_value(it, 3, _f("Error: {}", err[:40]))
                         model.set_value(it, 4, -1)
                         model.set_value(it, 6, False)
                         model.set_value(it, 7, True)
                     else:
-                        model.set_value(it, 3, "Descargado")
+                        model.set_value(it, 3, _("Descargado"))
                         model.set_value(it, 4, 100)
                         model.set_value(it, 6, True)
                         model.set_value(it, 7, False)
@@ -5517,14 +5659,14 @@ class PlaylistWindow(Gtk.Window):
             self.download_bar.set_fraction(frac)
             self.download_bar.set_text(f"{int(frac * 100)}% ({fmt_size(downloaded)} / {fmt_size(total)})")
             pct = int(frac * 100)
-            model.set_value(it, 3, f"Descargando {pct}%")
+            model.set_value(it, 3, _f("Descargando {}%", pct))
             model.set_value(it, 4, pct)
             model.set_value(it, 6, True)
             model.set_value(it, 7, False)
         else:
             self.download_bar.pulse()
             self.download_bar.set_text(f"Descargando: {fmt_size(downloaded)}")
-            model.set_value(it, 3, f"Descargando ({fmt_size(downloaded)})")
+            model.set_value(it, 3, _f("Descargando ({})", fmt_size(downloaded)))
             model.set_value(it, 4, 0)
             model.set_value(it, 6, True)
             model.set_value(it, 7, False)
@@ -6770,8 +6912,8 @@ class PlaylistWindow(Gtk.Window):
             text=_('TunePod ha detectado archivos no compatibles')
         )
         dialog.format_secondary_text(
-            f"Se encontraron {len(incompatible)} archivos (FLAC, OGG, etc.) que el iPod no puede reproducir.\n"
-            "¿Deseas convertirlos automáticamente a ALAC (M4A sin pérdida) para poder enviarlos?"
+            _f("Se encontraron {} archivos (FLAC, OGG, etc.) que el iPod no puede reproducir.\n"
+               "¿Deseas convertirlos automáticamente a ALAC (M4A sin pérdida) para poder enviarlos?", len(incompatible))
         )
         
         if dialog.run() != Gtk.ResponseType.YES:
@@ -7563,7 +7705,7 @@ class PlaylistWindow(Gtk.Window):
                         ok2, cout, cerr = ipod_copy.copy_tracks(
                             self.ipod_mount, tracks, dry_run=False,
                             progress_callback=lambda line: GLib.idle_add(
-                                self.status_label.set_text, f"Sincronizando podcast: {line}"))
+                                self.status_label.set_text, _f("Sincronizando podcast: {}", line)))
                         if cerr:
                             GLib.idle_add(
                                 self.episodes_status.set_text,
@@ -7907,14 +8049,14 @@ class PlaylistWindow(Gtk.Window):
                 })
 
         self.status_label.set_text(
-            f"Sincronizando {len(tracks_to_copy)} canciones y {len(pod_episodes)} podcasts…")
+            _f("Sincronizando {} canciones y {} podcasts…", len(tracks_to_copy), len(pod_episodes)))
 
         def worker():
             if tracks_to_copy:
                 ok, out, err = ipod_copy.copy_tracks(
                     mount, tracks_to_copy, dry_run=False,
                     progress_callback=lambda line: GLib.idle_add(
-                        self.status_label.set_text, f"Sincronizando al iPod: {line}"))
+                        self.status_label.set_text, _f("Sincronizando al iPod: {}", line)))
                 try:
                     os.sync()
                 except Exception:
@@ -7947,7 +8089,7 @@ class PlaylistWindow(Gtk.Window):
                     ok, out, err = ipod_copy.copy_tracks(
                         mount, pod_dicts, dry_run=False,
                         progress_callback=lambda line: GLib.idle_add(
-                            self.status_label.set_text, f"Sincronizando podcast: {line}"))
+                            self.status_label.set_text, _f("Sincronizando podcast: {}", line)))
                     try:
                         os.sync()
                     except Exception:
@@ -7984,9 +8126,9 @@ class PlaylistWindow(Gtk.Window):
 
             data2, _ = ipod.read_ipod(mount)
             GLib.idle_add(self._on_ipod_read, mount, data2, None)
-            msg = f"Sincronización selectiva completada: {len(matched_new)} canciones"
+            msg = _f("Sincronización selectiva completada: {} canciones", len(matched_new))
             if n_playlists_created:
-                msg += f", {n_playlists_created} lista(s) creada(s)"
+                msg += _f(", {} lista(s) creada(s)", n_playlists_created)
             GLib.idle_add(self.status_label.set_text, msg)
 
         threading.Thread(target=worker, daemon=True).start()
@@ -8023,7 +8165,7 @@ class PlaylistWindow(Gtk.Window):
             return
 
         self.status_label.set_text(
-            f"Comprobando {len(local_tracks)} canciones frente al iPod…")
+            _f("Comprobando {} canciones frente al iPod…", len(local_tracks)))
 
         def worker():
             ipod_tracks = self.ipod_data.get("tracks", [])
@@ -8064,7 +8206,7 @@ class PlaylistWindow(Gtk.Window):
         n_new = len(tracks_to_copy)
         n_already = len(matched)
         self.status_label.set_text(
-            f"Enviando {n_new} canciones al iPod ({n_already} ya estaban)…")
+            _f("Enviando {} canciones al iPod ({} ya estaban)…", n_new, n_already))
 
         def worker():
             ok, out, err = ipod_copy.copy_tracks(
@@ -8087,7 +8229,7 @@ class PlaylistWindow(Gtk.Window):
             GLib.idle_add(self._on_ipod_read, mount, data, None)
             GLib.idle_add(
                 self.status_label.set_text,
-                f"Enviadas {n_new} canciones al iPod ({n_already} ya estaban)")
+                _f("Enviadas {} canciones al iPod ({} ya estaban)", n_new, n_already))
 
         threading.Thread(target=worker, daemon=True).start()
 

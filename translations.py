@@ -105,7 +105,15 @@ TRANSLATIONS = {
         "Fecha": "Date",
         "Estado": "Status",
         "Mis podcasts": "My podcasts",
-
+        "Sincronizando {} canciones al iPod…": "Syncing {} songs to iPod...",
+        "Sincronizando {} canciones y {} podcasts…": "Syncing {} songs and {} podcasts...",
+        "Sincronizando al iPod: {}": "Syncing to iPod: {}",
+        "Sincronizando podcast: {}": "Syncing podcast: {}",
+        "Sincronización selectiva completada: {} canciones": "Selective sync complete: {} songs",
+        ", {} lista(s) creada(s)": ", {} playlist(s) created",
+        "Enviando {} canciones al iPod ({} ya estaban)…": "Sending {} songs to iPod ({} already there)...",
+        "Enviadas {} canciones al iPod ({} ya estaban)": "Sent {} songs to iPod ({} already there)",
+        "Comprobando {} canciones frente al iPod…": "Checking {} songs against iPod...",
         # === Diálogos y botones ===
         "Cancelar": "Cancel",
         "Añadir": "Add",
@@ -139,6 +147,20 @@ TRANSLATIONS = {
         "Editar metadatos": "Edit metadata",
         "Editar metadatos del álbum": "Edit album metadata",
         "Guardar en todas": "Save to all",
+
+        # === Menú de hamburguesa ===
+        "Menú principal": "Main menu",
+        "Manual de usuario": "User manual",
+        "Acerca de TunePod": "About TunePod",
+        "Buscar actualizaciones…": "Check for updates...",
+        "Buscando actualizaciones en GitHub…": "Checking for updates on GitHub...",
+        "Error al buscar actualizaciones: {}": "Error checking for updates: {}",
+        "Búsqueda de actualizaciones finalizada": "Update search finished",
+        "Última versión disponible: {}": "Latest version available: {}",
+        "{} \n\n¿Deseas abrir la página de descarga en tu navegador?": "{} \n\nDo you want to open the download page in your browser?",
+        "¿Deseas abrir la página de descarga en tu navegador?": "Do you want to open the download page in your browser?",
+        "Reproductor de música y gestor de iPod para Linux": "Music player and iPod manager for Linux",
+        "¡Bienvenido a TunePod!\n\nTunePod es tu centro de música y iPod para Linux. Aquí tienes una guía rápida de todo lo que puedes hacer:\n\n=== BIBLIOTECA DE MÚSICA ===\n• Añadir música: Usa el botón 'Agregar música' para importar archivos individuales o carpetas enteras.\n• Organización: Explora tu música por Artistas, Álbumes o Canciones.\n• Listas de reproducción: Crea listas manuales o listas 'inteligentes' basadas en reglas (ej. valoración > 4 estrellas).\n• Búsqueda: Usa la barra superior para encontrar canciones al instante.\n\n=== REPRODUCCIÓN ===\n• Controles: Play/Pausa, Siguiente/Anterior, Aleatorio y Repetir.\n• Cola de reproducción: Añade canciones a la cola para escucharlas después.\n• Letras: Pulsa 'Mostrar letra' para buscar la letra de la canción actual en internet.\n• Notificaciones: Recibirás notificaciones de escritorio con la carátula al cambiar de canción.\n\n=== METADATOS Y CARÁTULAS ===\n• Edición: Haz clic derecho en una canción o álbum y selecciona 'Información' para editar título, artista, etc.\n• Buscar carátulas: Usa el botón 'Buscar carátula' para descargar arte desde iTunes o Deezer.\n• Aplicar a todo el álbum: Al editar un álbum, puedes aplicar los cambios a todas sus canciones de golpe.\n\n=== GESTIÓN DEL IPOD ===\n• Conexión: Conecta tu iPod por USB y TunePod lo detectará automáticamente.\n• Sincronización: Usa 'Sincronización global' para mantener tu iPod idéntico a tu PC, o 'Sincronización selectiva' para elegir qué enviar.\n• Exploración: Haz clic en 'Ver contenido' para examinar los archivos que ya están en el iPod.\n• Copiar al PC: Puedes extraer música de tu iPod a tu computadora.\n• Restaurar: Si tu iPod falla, usa 'Restaurar Firmware' (requiere poner el ipod en modo disco, para los modelos de primera a cuarta generación, incluyendo iPod Photo, se requiere un cargador firewire, ).\n\n=== PODCASTS ===\n• Descubrir: Busca podcasts por nombre en la pestaña Podcasts.\n• Suscripciones: Suscríbete y descarga episodios con un solo clic.\n• Enviar al iPod: Los episodios descargados se pueden transferir directamente a tu iPod.\n\n=== PERSONALIZACIÓN ===\n• Modo oscuro: Usa el botón de la luna en la barra superior.\n• Actualizaciones: Usa el menú (☰) para comprobar si hay nuevas versiones de TunePod.\n": "Welcome to TunePod!\n\nTunePod is your music and iPod hub for Linux. Here is a quick guide to everything you can do:\n\n=== MUSIC LIBRARY ===\n• Add music: Use the 'Add music' button to import individual files or entire folders.\n• Organization: Browse your music by Artists, Albums, or Songs.\n• Playlists: Create manual playlists or 'smart' playlists based on rules (e.g., rating > 4 stars).\n• Search: Use the top bar to find songs instantly.\n\n=== PLAYBACK ===\n• Controls: Play/Pause, Next/Previous, Shuffle, and Repeat.\n• Play queue: Add songs to the queue to listen to them later.\n• Lyrics: Click 'Show lyrics' to search for the current song's lyrics online.\n• Notifications: You will receive desktop notifications with the cover art when changing songs.\n\n=== METADATA AND COVER ART ===\n• Editing: Right-click on a song or album and select 'Information' to edit title, artist, etc.\n• Search covers: Use the 'Search cover art' button to download art from iTunes or Deezer.\n• Apply to entire album: When editing an album, you can apply changes to all its songs at once.\n\n=== IPOD MANAGEMENT ===\n• Connection: Connect your iPod via USB and TunePod will detect it automatically.\n• Sync: Use 'Global sync' to keep your iPod identical to your PC, or 'Selective sync' to choose what to send.\n• Browsing: Click 'View content' to examine the files already on the iPod.\n• Copy to PC: You can extract music from your iPod to your computer.\n• Restore: If your iPod fails, use 'Restore Firmware' (requires putting the iPod in disk mode; for 1st to 4th generation models, including iPod Photo, a FireWire charger is required).\n\n=== PODCASTS ===\n• Discover: Search for podcasts by name in the Podcasts tab.\n• Subscriptions: Subscribe and download episodes with a single click.\n• Send to iPod: Downloaded episodes can be transferred directly to your iPod.\n\n=== CUSTOMIZATION ===\n• Dark mode: Use the moon button in the top bar.\n• Updates: Use the menu (☰) to check for new versions of TunePod.\n",
 
         # === Añadir música ===
         "¿Qué quieres agregar?": "What do you want to add?",
@@ -471,6 +493,7 @@ TRANSLATIONS = {
 
         # === Novena pasada (ventanas info) ===
         "{} archivo(s) no se pudieron mover a la papelera": "{} file(s) could not be moved to the trash",
+        "Se encontraron {} archivos (FLAC, OGG, etc.) que el iPod no puede reproducir.\n¿Deseas convertirlos automáticamente a ALAC (M4A sin pérdida) para poder enviarlos?": "{} files were found (FLAC, OGG, etc.) that the iPod cannot play.\nDo you want to convert them automatically to ALAC (M4A lossless) so they can be sent?",
 
         # === Plantillas con {} (usar _f) ===
         "{} pistas": "{} tracks",
