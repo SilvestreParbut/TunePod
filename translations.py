@@ -68,6 +68,7 @@ TRANSLATIONS = {
         "Descargar selección": "Download selection",
         "Volver a Artistas": "Back to Artists",
         "Volver a Álbumes": "Back to Albums",
+        "Volver a {}": "Back to {}",
         "Buscar…": "Search...",
         "Buscar": "Search",
         "Buscar podcasts en iTunes…": "Search podcasts on iTunes...",

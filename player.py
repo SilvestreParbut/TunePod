@@ -592,10 +592,13 @@ class PlaylistWindow(Gtk.Window):
         back_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         back_img = Gtk.Image.new_from_icon_name("go-previous-symbolic", Gtk.IconSize.BUTTON)
         back_box.pack_start(back_img, False, False, 0)
-        back_box.pack_start(Gtk.Label(label=_('Volver a Álbumes')), False, False, 0)
+        self._album_back_label = Gtk.Label(label=_('Volver a Álbumes'))
+        self._album_back_label.set_ellipsize(Pango.EllipsizeMode.END)
+        self._album_back_label.set_max_width_chars(40)
+        back_box.pack_start(self._album_back_label, False, False, 0)
         back_btn.add(back_box)
         back_btn.set_halign(Gtk.Align.START)
-        back_btn.connect("clicked", lambda w: self.albums_inner_stack.set_visible_child_name("grid"))
+        back_btn.connect("clicked", self._on_album_back_clicked)
         album_detail_box.pack_start(back_btn, False, False, 0)
 
         self.album_detail_title = Gtk.Label()
@@ -3124,6 +3127,17 @@ class PlaylistWindow(Gtk.Window):
 
     def _open_album_detail(self, artist, album, tracks):
         """Abre la vista de detalle de un álbum sin reproducir."""
+        # Detectar el origen ANTES de cambiar de pestaña:
+        # si el stack muestra "artists", venimos de los discos de un artista.
+        if self.stack.get_visible_child_name() == "artists" and artist:
+            self._album_back_context = ("artists", artist)
+            if hasattr(self, "_album_back_label"):
+                self._album_back_label.set_text(_f("Volver a {}", artist))
+        else:
+            self._album_back_context = None
+            if hasattr(self, "_album_back_label"):
+                self._album_back_label.set_text(_("Volver a Álbumes"))
+
         self.search_entry.handler_block_by_func(self.on_search_changed)
         self.search_entry.set_text("")
         self.search_query = ""
@@ -3955,9 +3969,13 @@ class PlaylistWindow(Gtk.Window):
             sel = listbox.get_selected_row()
             if sel is not None:
                 r = sel._result
-                apply_album = (apply_album_check is not None
-                               and apply_album_check.get_active())
-                targets = album_uris if apply_album else [uri]
+                # Si el álbum tiene más de una canción, aplicar siempre a todo el álbum
+                # para que la cuadrícula (que usa la primera canción como portada)
+                # encuentre la carátula sin importar qué canción se haya seleccionado.
+                if len(album_uris) > 1:
+                    targets = album_uris
+                else:
+                    targets = [uri]
 
                 ok_count = 0
                 err_count = 0
@@ -4457,6 +4475,16 @@ class PlaylistWindow(Gtk.Window):
         if img_widget.get_parent() is not None:
             img_widget.set_from_pixbuf(pixbuf)
         return False
+
+    def _on_album_back_clicked(self, widget):
+        """Vuelve a la vista anterior: a los discos del artista si abrimos
+        este álbum desde la vista de artistas, o a la cuadrícula de álbumes."""
+        ctx = getattr(self, "_album_back_context", None)
+        if ctx and ctx[0] == "artists":
+            self.stack.set_visible_child_name("artists")
+            self.artists_stack.set_visible_child_name("detail")
+        else:
+            self.albums_inner_stack.set_visible_child_name("grid")
 
     def on_album_activated(self, flowbox, child):
         # GTK envuelve nuestro widget en un FlowBoxChild. 

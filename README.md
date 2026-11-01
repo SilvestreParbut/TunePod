@@ -33,6 +33,10 @@ bash build_deb.sh
 3.  Install the generated package:
 sudo apt install ./tunepod_*.deb
 
+##¿Por qué no hay una versión Flatpak?
+
+TunePod necesita acceso directo al hardware para expulsar el iPod de forma segura y restaurar el firmware. El aislamiento (sandbox) de Flatpak impide estas operaciones críticas, por lo que la versión oficial y recomendada es el paquete 
+
 ## Contributing
 
 If you encounter any bugs or have an idea to improve TunePod, feel free to open an **Issue** or submit a **Pull Request**. Any help is welcome!
