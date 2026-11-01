@@ -3970,31 +3970,45 @@ class PlaylistWindow(Gtk.Window):
             if sel is not None:
                 r = sel._result
                 # Si el álbum tiene más de una canción, aplicar siempre a todo el álbum
-                # para que la cuadrícula (que usa la primera canción como portada)
-                # encuentre la carátula sin importar qué canción se haya seleccionado.
                 if len(album_uris) > 1:
                     targets = album_uris
                 else:
                     targets = [uri]
 
+                # Descargar la carátula UNA SOLA VEZ y copiarla localmente a las
+                # demás canciones (copiar es instantáneo; descargar 22 veces
+                # congelaba la interfaz).
+                first_uri = targets[0]
+                path, err = cover_art.download_cover(
+                    r["artwork_url"], first_uri, overwrite=True)
                 ok_count = 0
                 err_count = 0
-                for target_uri in targets:
-                    path, err = cover_art.download_cover(
-                        r["artwork_url"], target_uri, overwrite=True)
-                    if err:
-                        err_count += 1
-                    else:
-                        ok_count += 1
-                        if target_uri == uri:
-                            try:
-                                pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-                                    path, 200, 200, True)
-                                cover_widget.set_from_pixbuf(pixbuf)
-                            except Exception:
-                                pass
+                if err:
+                    err_count = len(targets)
+                    path = None
+                else:
+                    ok_count = 1
+                    for other_uri in targets[1:]:
+                        try:
+                            other_path, other_err = cover_art.copy_local_cover(
+                                path, other_uri, overwrite=True)
+                            if other_err:
+                                err_count += 1
+                            else:
+                                ok_count += 1
+                        except Exception:
+                            err_count += 1
 
-                if apply_album:
+                # Actualizar el widget de portada si la canción actual está afectada
+                if path and uri in targets:
+                    try:
+                        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
+                            path, 200, 200, True)
+                        cover_widget.set_from_pixbuf(pixbuf)
+                    except Exception:
+                        pass
+
+                if len(targets) > 1:
                     msg = f"Carátula aplicada a {ok_count} canciones"
                     if err_count:
                         msg += f" ({err_count} errores)"
