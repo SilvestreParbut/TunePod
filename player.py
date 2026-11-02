@@ -38,7 +38,7 @@ import ipod
 import ipod_write
 import ipod_sync
 import ipod_copy
-APP_VERSION = "1.0.4"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
+APP_VERSION = "1.0.5"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
 Gst.init(None)
 try:
     Notify.init("TunePod")
@@ -1082,7 +1082,7 @@ class PlaylistWindow(Gtk.Window):
         """Muestra la ventana Acerca de."""
         dialog = Gtk.AboutDialog(transient_for=self, modal=True)
         dialog.set_program_name("TunePod")
-        dialog.set_version("1.0.4") # <-- Puedes cambiar esto con cada release
+        dialog.set_version("1.0.5") # <-- Puedes cambiar esto con cada release
         dialog.set_comments(_("Reproductor de música y gestor de iPod para Linux"))
         dialog.set_license_type(Gtk.License.GPL_3_0)
         dialog.set_website("https://github.com/SilvestreParbut/TunePod")
@@ -5572,8 +5572,17 @@ class PlaylistWindow(Gtk.Window):
             return
         title = model.get_value(it, 0)
         self.sub_title_label.set_text(title)
-        self.episodes_store.clear()
-        self.episodes_status.set_text(_('Pulsa "Actualizar" para cargar los episodios'))
+        # Al seleccionar, mostramos los episodios descargados localmente.
+        # No requiere internet.
+        local_eps = self._scan_local_episodes(title)
+        n_down = self._populate_episodes_store(local_eps)
+        if n_down > 0:
+            self.episodes_status.set_text(
+                _f("{} episodio(s) descargado(s). Pulsa 'Actualizar' para buscar nuevos en línea.",
+                   n_down))
+        else:
+            self.episodes_status.set_text(
+                _("No hay episodios descargados. Pulsa 'Actualizar' para buscarlos en línea."))
 
     def _current_feed_url(self):
         sel = self.subs_view.get_selection()
@@ -5598,6 +5607,61 @@ class PlaylistWindow(Gtk.Window):
                 return True
         return False
 
+    def _scan_local_episodes(self, podcast_title):
+        """Devuelve los episodios descargados del podcast en disco.
+        No requiere conexión a internet."""
+        if not podcast_title:
+            return []
+        base_dir = os.path.join(
+            PODCAST_DIR, podcasts.sanitize_filename(podcast_title))
+        if not os.path.isdir(base_dir):
+            return []
+        episodes = []
+        for path in sorted(glob.glob(os.path.join(base_dir, "*"))):
+            if path.endswith(".part"):
+                continue
+            ext = os.path.splitext(path)[1].lower()
+            if ext not in AUDIO_EXT:
+                continue
+            title = os.path.splitext(os.path.basename(path))[0]
+            episodes.append({
+                "title": title,
+                "pub_date": "",
+                "duration": "",
+                "audio_url": GLib.filename_to_uri(path, None),
+                "downloaded": True,
+            })
+        return episodes
+
+    def _populate_episodes_store(self, combined):
+        """Rellena el episodes_store con una lista de dicts que tengan
+        {title, pub_date, duration, audio_url, downloaded}."""
+        self.episodes_store.clear()
+        n_downloaded = 0
+        for ep in combined:
+            if ep.get("downloaded"):
+                status_text = _("Descargado")
+                progress = 100
+                has_prog = True
+                no_prog = False
+                n_downloaded += 1
+            else:
+                status_text = ""
+                progress = -1
+                has_prog = False
+                no_prog = True
+            self.episodes_store.append([
+                ep.get("title", ""),
+                ep.get("pub_date", ""),
+                ep.get("duration", ""),
+                status_text,
+                progress,
+                ep.get("audio_url", ""),
+                has_prog,
+                no_prog,
+            ])
+        return n_downloaded
+
     def on_refresh_feed(self, *args):
         if self.podcast_feed_running:
             return
@@ -5608,38 +5672,81 @@ class PlaylistWindow(Gtk.Window):
             return
         self.podcast_feed_running = True
         self.refresh_btn.set_sensitive(False)
-        self.episodes_status.set_text(_('Cargando episodios…'))
+
+        # Mostrar locales inmediatamente mientras se consulta la red
+        local_eps = self._scan_local_episodes(podcast_title)
+        self._populate_episodes_store(local_eps)
+        self.episodes_status.set_text(
+            _('Buscando episodios nuevos en línea… (los descargados ya se muestran)'))
+
         def worker():
             data, err = podcasts.fetch_feed(feed_url)
-            GLib.idle_add(done, data, err, podcast_title)
-        def done(data, err, podcast_title):
+            GLib.idle_add(done, data, err, podcast_title, local_eps)
+
+        def done(data, err, podcast_title, local_eps):
             if self.shutting_down:
                 return False
             self.podcast_feed_running = False
             self.refresh_btn.set_sensitive(True)
-            self.episodes_store.clear()
+
+            # Sin conexión (o feed caído): quedarnos con los locales
             if err:
-                self.episodes_status.set_text(err)
+                self._populate_episodes_store(local_eps)
+                self.episodes_status.set_text(
+                    _f("Sin conexión o feed inaccesible. Mostrando {} episodio(s) descargado(s) localmente.",
+                       len(local_eps)))
                 return False
+
             self.current_feed_data = data
-            eps = data.get("episodes", [])
-            n_downloaded = 0
-            for ep in eps:
-                downloaded = self._is_downloaded(podcast_title or "Podcast", ep["title"])
-                if downloaded:
-                    status_text = _("Descargado")
-                    progress_int = 100
-                    has_prog = True
-                    no_prog = False
-                    n_downloaded += 1
+            remote_eps = data.get("episodes", [])
+
+            # Comparar títulos ignorando mayúsculas, espacios y puntuación
+            def _norm(t):
+                return re.sub(r'[^a-z0-9]', '', (t or '').lower())
+
+            local_by_norm = {_norm(e["title"]): e for e in local_eps}
+            combined = []
+            seen_norms = set()
+
+            # 1. Iterar sobre los episodios remotos (usar título bonito)
+            for ep in remote_eps:
+                title = ep.get("title", "")
+                norm = _norm(title)
+                if not title or not norm:
+                    continue
+                seen_norms.add(norm)
+
+                if norm in local_by_norm:
+                    # Ya lo tenemos descargado
+                    local_ep = local_by_norm[norm]
+                    combined.append({
+                        "title": title,  # Título bonito del feed
+                        "pub_date": ep.get("pub_date", ""),
+                        "duration": ep.get("duration", ""),
+                        "audio_url": local_ep["audio_url"],  # Ruta local para reproducir
+                        "downloaded": True,
+                    })
                 else:
-                    status_text = ""
-                    progress_int = -1
-                    has_prog = False
-                    no_prog = True
-                self.episodes_store.append([ep["title"], ep["pub_date"], ep["duration"], status_text, progress_int, ep["audio_url"], has_prog, no_prog])
-            self.episodes_status.set_text(_f("{} episodios ({} descargados)", len(eps), n_downloaded))
+                    # No descargado
+                    combined.append({
+                        "title": title,
+                        "pub_date": ep.get("pub_date", ""),
+                        "duration": ep.get("duration", ""),
+                        "audio_url": ep.get("audio_url", ""),
+                        "downloaded": False,
+                    })
+
+            # 2. Añadir episodios locales huérfanos (que ya no estén en el feed)
+            for e in local_eps:
+                norm = _norm(e["title"])
+                if norm not in seen_norms:
+                    combined.append(e)
+
+            n_down = self._populate_episodes_store(combined)
+            self.episodes_status.set_text(
+                _f("{} episodios ({} descargados)", len(combined), n_down))
             return False
+
         threading.Thread(target=worker, daemon=True).start()
 
     def on_unsubscribe(self, *args):
