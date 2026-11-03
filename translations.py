@@ -226,6 +226,14 @@ TRANSLATIONS = {
         "(sin nombre)": "(no name)",
         "(no hay listas manuales)": "(no manual playlists)",
 
+        # === Mensajes de Copia desde iPod ===
+        "Copiando: {}/{} - {}…": "Copying: {}/{} - {}...",
+        "¡Copia terminada! {} exitosas": "Copy finished! {} successful",
+        ", {} omitidas (ya estaban en el PC)": ", {} skipped (already on PC)",
+        ", {} errores": ", {} errors",
+        "¿Añadir {} canciones a tu biblioteca?": "Add {} songs to your library?",
+        "Se agregarán a la biblioteca de TunePod para que puedas reproducirlas sin el iPod conectado.\n\nSi solo estás rescatando música para un amigo, elige 'No'. Los archivos ya se habrán copiado a la carpeta que elegiste.": "They will be added to your TunePod library so you can play them without the iPod connected.\n\nIf you're just rescuing music for a friend, choose 'No'. The files will already have been copied to the folder you chose.",
+
         # === Mensajes estáticos ===
         "0 pistas": "0 tracks",
         "Selecciona alguna canción primero": "Select a song first",

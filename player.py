@@ -7087,6 +7087,7 @@ class PlaylistWindow(Gtk.Window):
                 return re.sub(r'[\\/*?:"<>|]', "_", name).strip()
 
             copiados = 0
+            omitidos = 0  # <--- NUEVO CONTADOR
             errores = 0
             copied_paths = []
             
@@ -7122,7 +7123,42 @@ class PlaylistWindow(Gtk.Window):
                 
                 target_file = os.path.join(target_folder, f"{title}{ext}")
 
-                # Si el archivo ya existe, añadir un número para no sobrescribir
+                # --- LÓGICA MEJORADA ANTI-DUPLICADOS (IGNORA SÍMBOLOS) ---
+                ya_existe = False
+                
+                def _norm(s):
+                    # Convierte a minúsculas y elimina todo lo que no sea letra o número
+                    return re.sub(r'[^a-z0-9]', '', (s or '').lower())
+
+                norm_title = _norm(title)
+                
+                # 1. Comprobar si existe un archivo con el nombre exacto y mismo peso
+                if os.path.exists(target_file):
+                    if os.path.getsize(full_ipod_path) == os.path.getsize(target_file):
+                        ya_existe = True
+                
+                # 2. Si no, revisar TODOS los archivos de la carpeta
+                if not ya_existe and os.path.isdir(target_folder):
+                    for existing_file in os.listdir(target_folder):
+                        if not existing_file.lower().endswith(ext.lower()):
+                            continue
+                            
+                        existing_path = os.path.join(target_folder, existing_file)
+                        
+                        # Si el peso es EXACTAMENTE el mismo, es muy probable que sea la misma canción
+                        if os.path.getsize(full_ipod_path) == os.path.getsize(existing_path):
+                            norm_existing = _norm(existing_file)
+                            # Si el título normalizado está dentro del nombre del archivo existente
+                            if norm_title in norm_existing:
+                                ya_existe = True
+                                break
+                                
+                if ya_existe:
+                    omitidos += 1
+                    continue
+                # ---------------------------------------------------------
+
+                # Si el archivo ya existe pero pesa distinto, le añadimos un número
                 counter = 1
                 base_target = target_file
                 while os.path.exists(target_file):
@@ -7135,16 +7171,23 @@ class PlaylistWindow(Gtk.Window):
                     copiados += 1
                     copied_paths.append(target_file)
                     GLib.idle_add(self.status_label.set_text, 
-                                  f"Copiando: {copiados}/{len(track_ids)} - {title[:30]}…")
+                                  _f("Copiando: {}/{} - {}…", copiados, len(track_ids), title[:30]))
                 except Exception as e:
                     print(f"[copy] Error Copiando {title}: {e}")
                     errores += 1
 
             # Terminado
-            GLib.idle_add(self.status_label.set_text, 
-                          f"¡Copia terminada! {copiados} exitosas, {errores} errores.")
+            msg = _f("¡Copia terminada! {} exitosas", copiados)
+            if omitidos > 0:
+                msg += _f(", {} omitidas (ya estaban en el PC)", omitidos)
+            if errores > 0:
+                msg += _f(", {} errores", errores)
+            msg += "."
+                
+            GLib.idle_add(self.status_label.set_text, msg)
             
             # Preguntar si queremos agregar a la biblioteca local
+            # (Solo preguntamos si hubo al menos una copia nueva)
             if copiados > 0:
                 GLib.idle_add(self._ask_add_to_library, copied_paths)
 
@@ -7159,13 +7202,13 @@ class PlaylistWindow(Gtk.Window):
             transient_for=self, modal=True,
             message_type=Gtk.MessageType.QUESTION,
             buttons=Gtk.ButtonsType.YES_NO,
-            text=f"¿Añadir {len(file_paths)} canciones a tu biblioteca?"
+            text=_f("¿Añadir {} canciones a tu biblioteca?", len(file_paths))
         )
         dialog.format_secondary_text(
-            "Se agregarán a la biblioteca de TunePod para que puedas "
-            "reproducirlas sin el iPod conectado.\n\n"
-            "Si solo estás rescatando música para un amigo, elige 'No'. "
-            "Los archivos ya se habrán copiado a la carpeta que elegiste."
+            _("Se agregarán a la biblioteca de TunePod para que puedas "
+              "reproducirlas sin el iPod conectado.\n\n"
+              "Si solo estás rescatando música para un amigo, elige 'No'. "
+              "Los archivos ya se habrán copiado a la carpeta que elegiste.")
         )
         
         if dialog.run() == Gtk.ResponseType.YES:
