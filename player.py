@@ -7117,21 +7117,42 @@ class PlaylistWindow(Gtk.Window):
                 if not ext:
                     ext = ".mp3"
 
-                # Construir la ruta destino: Carpeta/Artista/Álbum/Cancion.mp3
-                target_folder = os.path.join(dest_dir, artist, album)
+                # Función para normalizar nombres (ignorar tildes, símbolos, etc.)
+                def _norm(s):
+                    return re.sub(r'[^a-z0-9]', '', (s or '').lower())
+
+                norm_artist = _norm(artist)
+                norm_album = _norm(album)
+
+                # 1. Comprobar si el artista ya existe
+                real_artist = artist
+                if os.path.isdir(dest_dir):
+                    for d in os.listdir(dest_dir):
+                        if os.path.isdir(os.path.join(dest_dir, d)) and _norm(d) == norm_artist:
+                            real_artist = d
+                            break
+                
+                artist_dir = os.path.join(dest_dir, real_artist)
+                os.makedirs(artist_dir, exist_ok=True)
+
+                # 2. Comprobar si el álbum ya existe dentro de la carpeta del artista
+                real_album = album
+                if os.path.isdir(artist_dir):
+                    for d in os.listdir(artist_dir):
+                        if os.path.isdir(os.path.join(artist_dir, d)) and _norm(d) == norm_album:
+                            real_album = d
+                            break
+
+                # Construir la ruta destino final
+                target_folder = os.path.join(artist_dir, real_album)
                 os.makedirs(target_folder, exist_ok=True)
                 
                 target_file = os.path.join(target_folder, f"{title}{ext}")
 
-                # --- LÓGICA MEJORADA ANTI-DUPLICADOS (IGNORA SÍMBOLOS) ---
+                # --- LÓGICA ANTI-DUPLICADOS DE ARCHIVOS ---
                 ya_existe = False
-                
-                def _norm(s):
-                    # Convierte a minúsculas y elimina todo lo que no sea letra o número
-                    return re.sub(r'[^a-z0-9]', '', (s or '').lower())
-
                 norm_title = _norm(title)
-                
+                            
                 # 1. Comprobar si existe un archivo con el nombre exacto y mismo peso
                 if os.path.exists(target_file):
                     if os.path.getsize(full_ipod_path) == os.path.getsize(target_file):
