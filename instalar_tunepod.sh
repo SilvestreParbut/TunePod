@@ -43,7 +43,7 @@ echo "=== 5. CREANDO COMANDO Y ACCESO DIRECTO ==="
 # Comando en la terminal
 sudo bash -c 'echo -e "#!/bin/sh\npython3 /opt/tunepod/player.py \"\$@\"" > /usr/local/bin/tunepod && chmod +x /usr/local/bin/tunepod'
 
-# Acceso directo en el menú de aplicaciones
+# Acceso directo en el menú de aplicaciones (para tu usuario)
 mkdir -p ~/.local/share/applications/
 cat > ~/.local/share/applications/tunepod.desktop << 'EOF'
 [Desktop Entry]
@@ -58,14 +58,16 @@ Categories=AudioVideo;Audio;Player;GTK;
 Keywords=music;audio;player;ipod;podcast;
 EOF
 
+# Copiar también al directorio del sistema (respaldo para GNOME Classic)
+sudo cp ~/.local/share/applications/tunepod.desktop /usr/share/applications/tunepod.desktop
+
+# Dar permisos y actualizar las bases de datos de los menús
 chmod +x ~/.local/share/applications/tunepod.desktop
+sudo chmod +x /usr/share/applications/tunepod.desktop
+sudo update-desktop-database /usr/share/applications/
 update-desktop-database ~/.local/share/applications/
 
-echo "=== LIMPIANDO ARCHIVOS TEMPORALES ==="
-cd ~
-rm -rf /tmp/tunepod_build
-
-echo "================================================================="
-echo "¡INSTALACIÓN COMPLETADA!"
-echo "Puedes abrir TunePod desde el menú de aplicaciones o escribiendo 'tunepod' en la terminal."
-echo "================================================================="
+# Forzar a GNOME Classic a recargar el menú (esto evita tener que reiniciar)
+if command -v dbus-send &> /dev/null; then
+    dbus-send --session --dest=org.gnome.Shell --type=method_call /org/gnome/Shell org.gnome.Shell.Eval string:'global.reexec_self()' &> /dev/null || true
+fi
