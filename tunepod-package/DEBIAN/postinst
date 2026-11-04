@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+
+# Configurar atajos para XFCE automáticamente
+if [ "$XDG_CURRENT_DESKTOP" = "XFCE" ] || [ -n "$XFCE4SESSION" ]; then
+    REAL_USER=${SUDO_USER:-$USER}
+    USER_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
+    
+    if [ -f "$USER_HOME/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-keyboard-shortcuts.xml" ]; then
+        su - "$REAL_USER" -c "xfconf-query -c xfce4-keyboard-shortcuts -p /commands/custom/XF86AudioPlay -n -t string -s 'playerctl play-pause' || true" >/dev/null 2>&1
+        su - "$REAL_USER" -c "xfconf-query -c xfce4-keyboard-shortcuts -p /commands/custom/XF86AudioNext -n -t string -s 'playerctl next' || true" >/dev/null 2>&1
+        su - "$REAL_USER" -c "xfconf-query -c xfce4-keyboard-shortcuts -p /commands/custom/XF86AudioPrev -n -t string -s 'playerctl previous' || true" >/dev/null 2>&1
+    fi
+fi
+
+exit 0

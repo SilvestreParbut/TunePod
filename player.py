@@ -38,7 +38,7 @@ import ipod
 import ipod_write
 import ipod_sync
 import ipod_copy
-APP_VERSION = "1.0.6"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
+APP_VERSION = "1.0.7"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
 Gst.init(None)
 try:
     Notify.init("TunePod")
@@ -1082,7 +1082,7 @@ class PlaylistWindow(Gtk.Window):
         """Muestra la ventana Acerca de."""
         dialog = Gtk.AboutDialog(transient_for=self, modal=True)
         dialog.set_program_name("TunePod")
-        dialog.set_version("1.0.6") # <-- Puedes cambiar esto con cada release
+        dialog.set_version("1.0.7") # <-- Puedes cambiar esto con cada release
         dialog.set_comments(_("Reproductor de música y gestor de iPod para Linux"))
         dialog.set_license_type(Gtk.License.GPL_3_0)
         dialog.set_website("https://github.com/SilvestreParbut/TunePod")
@@ -7283,41 +7283,140 @@ class PlaylistWindow(Gtk.Window):
         os.makedirs(cache_dir, exist_ok=True)
 
         def worker():
-            converted_tracks = []
-            for t in tracks:
-                if t not in incompatible:
-                    converted_tracks.append(t)
+            import shutil
+            import re
+            import unicodedata
+            
+            def sanitize(name):
+                """Mantiene los símbolos originales, excepto los que crean carpetas."""
+                if not name: return "Desconocido"
+                # Reemplazamos las barras por caracteres unicode visualmente idénticos
+                # para que se vean igual, pero no creen carpetas anidadas.
+                name = name.replace("/", "∕").replace("\\", "∖")
+                # Quitamos espacios extra
+                return re.sub(r'\s+', ' ', name).strip()
+
+            def _norm(s):
+                """Normaliza un texto ignorando acentos, espacios y símbolos (para comparar)."""
+                if not s: return ""
+                s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode('ascii')
+                return re.sub(r'[^a-z0-9]', '', s.lower())
+
+            copiados = 0
+            omitidos = 0
+            errores = 0
+            copied_paths = []
+            
+            tracks_by_id = {t.get("id"): t for t in self.ipod_data.get("tracks", [])}
+
+            for tid in track_ids:
+                track = tracks_by_id.get(tid)
+                if not track or not track.get("ipod_path"):
+                    errores += 1
                     continue
 
-                uri = t.get("uri", "")
-                try:
-                    fname = GLib.filename_from_uri(uri)[0]
-                except Exception:
+                ipod_path = track.get("ipod_path")
+                full_ipod_path = ipod.ipod_track_full_path(self.ipod_mount, ipod_path)
+                
+                if not full_ipod_path or not os.path.exists(full_ipod_path):
+                    errores += 1
                     continue
 
-                h = hashlib.sha1(fname.encode()).hexdigest()[:10]
-                base = os.path.splitext(os.path.basename(fname))[0]
-                out_path = os.path.join(cache_dir, f"{base}_{h}.m4a")
+                raw_artist = track.get("artist", "").strip()
+                raw_album = track.get("album", "").strip()
+                raw_title = track.get("title", "").strip()
+                
+                # Usamos el nombre tal cual, solo cambiando las barras
+                artist = sanitize(raw_artist if raw_artist else "Artista Desconocido")
+                album = sanitize(raw_album if raw_album else "Álbum Desconocido")
+                title = sanitize(raw_title if raw_title else "Pista")
+                
+                ext = os.path.splitext(full_ipod_path)[1] or ".mp3"
 
-                cmd = ["ffmpeg", "-y", "-i", fname, "-c:a", "alac", "-c:v", "copy", out_path]
+                norm_artist = _norm(artist)
+                norm_album = _norm(album)
+                norm_title = _norm(title)
+
+                # 1. Comprobar si la carpeta del Artista ya existe
+                real_artist = artist
+                if os.path.isdir(dest_dir):
+                    for d in os.listdir(dest_dir):
+                        if os.path.isdir(os.path.join(dest_dir, d)) and _norm(d) == norm_artist:
+                            real_artist = d
+                            break
+                
+                artist_dir = os.path.join(dest_dir, real_artist)
+                os.makedirs(artist_dir, exist_ok=True)
+
+                # 2. Comprobar si la carpeta del Álbum ya existe
+                real_album = album
+                if os.path.isdir(artist_dir):
+                    for d in os.listdir(artist_dir):
+                        if os.path.isdir(os.path.join(artist_dir, d)) and _norm(d) == norm_album:
+                            real_album = d
+                            break
+
+                target_folder = os.path.join(artist_dir, real_album)
+                os.makedirs(target_folder, exist_ok=True)
+                
+                target_file = os.path.join(target_folder, f"{title}{ext}")
+
+                # --- LÓGICA ANTI-DUPLICADOS ---
+                ya_existe = False
+                
+                # 3. Comprobación rápida por nombre exacto
+                if os.path.exists(target_file):
+                    if os.path.getsize(full_ipod_path) == os.path.getsize(target_file):
+                        ya_existe = True
+                
+                # 4. Comprobación profunda (ignorando símbolos y números de pista)
+                if not ya_existe and os.path.isdir(target_folder):
+                    for existing_file in os.listdir(target_folder):
+                        if not existing_file.lower().endswith(ext.lower()):
+                            continue
+                        existing_path = os.path.join(target_folder, existing_file)
+                        if os.path.getsize(full_ipod_path) == os.path.getsize(existing_path):
+                            norm_existing = _norm(existing_file)
+                            if norm_title in norm_existing:
+                                ya_existe = True
+                                break
+                                
+                if ya_existe:
+                    omitidos += 1
+                    continue
+                # --------------------------------
+
+                # Si el archivo existe pero pesa distinto, le añadimos un número
+                counter = 1
+                base_target = target_file
+                while os.path.exists(target_file):
+                    target_file = f"{os.path.splitext(base_target)[0]} ({counter}){ext}"
+                    counter += 1
+
                 try:
-                    subprocess.run(cmd, capture_output=True, check=True, timeout=300)
-                    new_t = dict(t)
-                    new_t["uri"] = GLib.filename_to_uri(out_path, None)
-                    new_t["local_path"] = out_path
-                    converted_tracks.append(new_t)
+                    shutil.copy2(full_ipod_path, target_file)
+                    copiados += 1
+                    copied_paths.append(target_file)
+                    GLib.idle_add(self.status_label.set_text, 
+                                  _f("Copiando: {}/{} - {}…", copiados, len(track_ids), title[:30]))
                 except Exception as e:
-                    print(f"[conversion] Error convirtiendo {fname}: {e}")
+                    print(f"[copy] Error Copiando {title}: {e}")
+                    errores += 1
 
-            def finish():
-                self.status_label.set_text(_('Conversión lista. Continuando sincronización…'))
-                callback(converted_tracks)
-                return False
-
-            GLib.idle_add(finish)
+            # Terminado (Traducido)
+            msg = _f("¡Copia terminada! {} exitosas", copiados)
+            if omitidos > 0:
+                msg += _f(", {} omitidas (ya estaban en el PC)", omitidos)
+            if errores > 0:
+                msg += _f(", {} errores", errores)
+            msg += "."
+                
+            GLib.idle_add(self.status_label.set_text, msg)
+            
+            if copiados > 0:
+                GLib.idle_add(self._ask_add_to_library, copied_paths)
 
         threading.Thread(target=worker, daemon=True).start()
-
     def _convert_to_alac(self, filepath):
         """Convierte un archivo a ALAC (.m4a) y lo guarda en la caché."""
         import subprocess

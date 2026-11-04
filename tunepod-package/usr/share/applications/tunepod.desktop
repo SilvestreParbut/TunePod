@@ -1,0 +1,14 @@
+[Desktop Entry]
+Name=TunePod
+GenericName=Music Player
+GenericName[es]=Reproductor de música
+Comment=Music player, podcasts and iPod manager
+Comment[es]=Reproductor de música, podcasts y gestor de iPod
+Exec=tunepod
+Icon=tunepod
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;Player;
+Keywords=music;player;ipod;podcast;audio;
+Keywords[es]=música;reproductor;ipod;podcast;audio;
+StartupWMClass=tunepod

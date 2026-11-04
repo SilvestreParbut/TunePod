@@ -1,0 +1,12 @@
+Package: tunepod
+Version: 1.0.7
+Section: sound
+Priority: optional
+Architecture: amd64
+Depends: python3, python3-gi, gir1.2-gtk-3.0, gir1.2-gstreamer-1.0, gir1.2-gst-plugins-base-1.0, gstreamer1.0-plugins-good, gstreamer1.0-plugins-ugly, gstreamer1.0-plugins-bad, gstreamer1.0-libav, libgpod4, python3-mutagen, python3-dbus, ffmpeg, polkitd | policykit-1, build-essential, libgpod-dev, libglib2.0-dev, libjson-glib-dev, gir1.2-notify-0.7
+Maintainer: https://github.com/SilvestreParbut/TunePod
+Homepage: https://github.com/SilvestreParbut/TunePod
+Description: TunePod - Music and iPod manager for Linux
+ A local music player, podcast aggregator and complete tool to
+ sync and restore iPods. Free alternative to iTunes.
+ License: GPL-3.0-or-later
