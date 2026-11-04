@@ -44,27 +44,22 @@ echo "=== 5. CREANDO COMANDO Y ACCESO DIRECTO ==="
 # Comando en la terminal
 sudo bash -c 'echo -e "#!/bin/sh\npython3 /opt/tunepod/player.py \"\$@\"" > /usr/local/bin/tunepod && chmod +x /usr/local/bin/tunepod'
 
-# Instalar el ícono en la ubicación estándar del sistema
-sudo mkdir -p /usr/share/icons/hicolor/256x256/apps/
-sudo cp /opt/tunepod/ipod.png /usr/share/icons/hicolor/256x256/apps/tunepod.png
-sudo gtk-update-icon-cache /usr/share/icons/hicolor/ -f -t &> /dev/null || true
-
-# Crear el acceso directo en el menú de aplicaciones
+# Crear el acceso directo (usando ruta absoluta para el ícono)
 mkdir -p ~/.local/share/applications/
-cat > ~/.local/share/applications/tunepod.desktop << 'DESKTOP'
+cat > ~/.local/share/applications/tunepod.desktop << 'EOF'
 [Desktop Entry]
 Type=Application
 Name=TunePod
 GenericName=Reproductor de música y gestor de iPod
 Comment=Reproductor de música y gestor de iPod para Linux
 Exec=python3 /opt/tunepod/player.py
-Icon=tunepod
+Icon=/opt/tunepod/ipod.png
 Terminal=false
 Categories=AudioVideo;Audio;Player;GTK;
 Keywords=music;audio;player;ipod;podcast;
-DESKTOP
+EOF
 
-# Copiar también al directorio del sistema (respaldo)
+# Copiar también al directorio del sistema (respaldo para GNOME Classic)
 sudo cp ~/.local/share/applications/tunepod.desktop /usr/share/applications/tunepod.desktop
 
 # Dar permisos y actualizar las bases de datos
@@ -73,7 +68,7 @@ sudo chmod +x /usr/share/applications/tunepod.desktop
 sudo update-desktop-database /usr/share/applications/
 update-desktop-database ~/.local/share/applications/
 
-# Forzar a GNOME a recargar el menú
+# Forzar a GNOME a recargar el shell
 if command -v dbus-send &> /dev/null; then
     dbus-send --session --dest=org.gnome.Shell --type=method_call /org/gnome/Shell org.gnome.Shell.Eval string:'global.reexec_self()' &> /dev/null || true
 fi
