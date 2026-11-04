@@ -20,6 +20,12 @@ cd TunePod
 2.  Run the application:
 python3 player.py
 
+## Installation for Fedora
+
+copy and run thjis in your terminal:
+
+curl -sL https://raw.githubusercontent.com/SilvestreParbut/TunePod/main/instalar_tunepod.sh | bash
+
 ## Creating the .deb installer
 
 If you prefer to install TunePod as a package on your system, you can generate the `.deb` file manually:
