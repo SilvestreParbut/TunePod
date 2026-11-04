@@ -22,7 +22,7 @@ python3 player.py
 
 ## Installation for Fedora
 
-copy and run thjis in your terminal:
+Copy and run this into your fedora terminal:
 
 curl -sL https://raw.githubusercontent.com/SilvestreParbut/TunePod/main/instalar_tunepod.sh | bash
 

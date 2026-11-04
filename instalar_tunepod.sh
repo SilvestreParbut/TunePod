@@ -37,6 +37,15 @@ sudo rm -rf /opt/tunepod
 sudo mkdir -p /opt/tunepod
 sudo cp -r "$BUILD_DIR"/* /opt/tunepod/
 
+# CORRECCIÓN DEL ICONO: Copiamos el ícono desde su ruta real en el paquete
+ICON_SRC="$BUILD_DIR/tunepod-package/usr/share/icons/hicolor/256x256/apps/tunepod.png"
+if [ -f "$ICON_SRC" ]; then
+    sudo cp "$ICON_SRC" /opt/tunepod/tunepod.png
+    sudo chmod 644 /opt/tunepod/tunepod.png # Asegurar que todos puedan leer el ícono
+else
+    echo "ADVERTENCIA: No se encontró el ícono en $ICON_SRC"
+fi
+
 sudo chmod +x /opt/tunepod/player.py /opt/tunepod/ipod_read /opt/tunepod/ipod_write /opt/tunepod/ipod_copy /opt/tunepod/ipod_clean /opt/tunepod/ipod_eject_helper.sh /opt/tunepod/ipod_restore_helper.sh
 
 # 5. CREAR COMANDO Y ACCESO DIRECTO CON ÍCONO
@@ -44,7 +53,7 @@ echo "=== 5. CREANDO COMANDO Y ACCESO DIRECTO ==="
 # Comando en la terminal
 sudo bash -c 'echo -e "#!/bin/sh\npython3 /opt/tunepod/player.py \"\$@\"" > /usr/local/bin/tunepod && chmod +x /usr/local/bin/tunepod'
 
-# Crear el acceso directo (usando ruta absoluta para el ícono)
+# Crear el acceso directo (usando el ícono en /opt/tunepod/)
 mkdir -p ~/.local/share/applications/
 cat > ~/.local/share/applications/tunepod.desktop << 'EOF'
 [Desktop Entry]
@@ -53,7 +62,7 @@ Name=TunePod
 GenericName=Reproductor de música y gestor de iPod
 Comment=Reproductor de música y gestor de iPod para Linux
 Exec=python3 /opt/tunepod/player.py
-Icon=/opt/tunepod/ipod.png
+Icon=/opt/tunepod/tunepod.png
 Terminal=false
 Categories=AudioVideo;Audio;Player;GTK;
 Keywords=music;audio;player;ipod;podcast;
