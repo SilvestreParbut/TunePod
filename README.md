@@ -20,7 +20,7 @@ cd TunePod
 2.  Run the application:
 python3 player.py
 
-## Installation for non-Debian systems
+## Universal instalator by terminal
 
 Copy and run this into your terminal:
 
