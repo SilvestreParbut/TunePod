@@ -5,6 +5,7 @@
 ## Features
 
 *   **Music Player:** Play your local files (.mp3, .m4a, .flac, .ogg, .wav).
+*   **Music Converter** converts audio files that are incompatible with the iPod on the fly during synchronization; any file that can be played using FFmpeg can be converted to M4A without loss of quality
 *   **Podcast Manager:** Search for, subscribe to, and download episodes directly from the app using the iTunes database.
 *   **Metadata Editor:** Edit song titles, artists, albums, and cover art.
 *   **iPod Synchronization:** Copy music (iPod to PC, PC to ipod), manage playlists, and sync statistics (play counts and ratings). 
@@ -17,6 +18,7 @@ for flash modded iPods, conect ALWAYS in disk mode
 
 Currently, TunePod offers theoretical support for the 1st, 2nd, 3rd, 4th, Photo, Mini 1, and Mini 2 models.
 It has been physically tested for synchronization and firmware restoration on:
+
 -iPod 4th gen: usb and firewire
 
 ## Podcast
