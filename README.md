@@ -7,7 +7,9 @@
 *   **Music Player:** Play your local files (.mp3, .m4a, .flac, .ogg, .wav).
 *   **Podcast Manager:** Search for, subscribe to, and download episodes directly from the app using the iTunes database.
 *   **Metadata Editor:** Edit song titles, artists, albums, and cover art.
-*   **iPod Synchronization:** Copy music (iPod to PC, PC to ipod), manage playlists, and sync statistics (play counts and ratings).
+*   **iPod Synchronization:** Copy music (iPod to PC, PC to ipod), manage playlists, and sync statistics (play counts and ratings). 
+==Atention==
+for flash modded iPods, conect ALWAYS in disk mode
 *   **Firmware Restoration:** Includes tools to restore 1st–4th/photo generation iPods and iPod Minis.
 *   **Adaptable Interface:** Dark/light mode and bilingual support (Spanish/English).
 
