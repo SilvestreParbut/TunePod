@@ -30,7 +30,7 @@ cd TunePod
 2.  Run the application:
 python3 player.py
 
-## Universal installer by terminal
+## Installer for Fedora-like systems
 
 Copy and run this into your terminal to install Tunepod on your linux system:
 
