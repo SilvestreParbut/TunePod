@@ -38,7 +38,7 @@ import ipod
 import ipod_write
 import ipod_sync
 import ipod_copy
-APP_VERSION = "1.0.7"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
+APP_VERSION = "1.0.8"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
 Gst.init(None)
 try:
     Notify.init("TunePod")
@@ -70,6 +70,7 @@ COL_YEAR = 11
 COL_GENRE = 12
 COL_ALBUMARTIST = 13
 COL_CD_NUM = 14
+COL_START_TIME = 15
 
 VCOL_TITLE = 0
 VCOL_ARTIST = 1
@@ -93,6 +94,32 @@ def fmt_size(n):
     if n < 1024 * 1024:
         return f"{n / 1024:.0f} KB"
     return f"{n / (1024 * 1024):.1f} MB"
+
+
+def _ms_to_mmss(ms):
+    """Convierte milisegundos a string MM:SS (o '' si es 0)."""
+    if not ms or ms <= 0:
+        return ""
+    total_sec = ms // 1000
+    return f"{total_sec // 60:02d}:{total_sec % 60:02d}"
+
+
+def _mmss_to_ms(s):
+    """Convierte string MM:SS o HH:MM:SS a milisegundos. 0 si inválido."""
+    if not s or not s.strip():
+        return 0
+    s = s.strip()
+    parts = s.split(":")
+    try:
+        if len(parts) == 1:
+            return int(parts[0]) * 1000
+        elif len(parts) == 2:
+            return (int(parts[0]) * 60 + int(parts[1])) * 1000
+        elif len(parts) == 3:
+            return (int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])) * 1000
+    except ValueError:
+        pass
+    return 0
 
 
 def sort_key_artist(s):
@@ -495,7 +522,7 @@ class PlaylistWindow(Gtk.Window):
         scroll_songs = Gtk.ScrolledWindow()
         scroll_songs.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
 
-        self.store = Gtk.ListStore(str, str, str, str, str, int, int, int, int, str, str, int, str, str, int)
+        self.store = Gtk.ListStore(str, str, str, str, str, int, int, int, int, str, str, int, str, str, int, int)
         self.view_store = Gtk.ListStore(str, str, str, str, str, int, int, int, int)
 
         self.tree = Gtk.TreeView(model=self.view_store)
@@ -1082,7 +1109,7 @@ class PlaylistWindow(Gtk.Window):
         """Muestra la ventana Acerca de."""
         dialog = Gtk.AboutDialog(transient_for=self, modal=True)
         dialog.set_program_name("TunePod")
-        dialog.set_version("1.0.7") # <-- Puedes cambiar esto con cada release
+        dialog.set_version("1.0.8") # <-- Puedes cambiar esto con cada release
         dialog.set_comments(_("Reproductor de música y gestor de iPod para Linux"))
         dialog.set_license_type(Gtk.License.GPL_3_0)
         dialog.set_website("https://github.com/SilvestreParbut/TunePod")
@@ -1741,7 +1768,11 @@ class PlaylistWindow(Gtk.Window):
         
         if not artist_name:
             return
-            
+
+        # 0. Asegurarse de que la pestaña "Música" esté activa en el notebook
+        #    (por si el usuario estaba viendo Cola, Podcasts, etc.)
+        self.notebook.set_current_page(0)
+
         # 1. Limpiar la barra de búsqueda silenciosamente (sin disparar el filtro global)
         self.search_entry.handler_block_by_func(self.on_search_changed)
         self.search_entry.set_text("")
@@ -1784,6 +1815,10 @@ class PlaylistWindow(Gtk.Window):
             
         if not album_name:
             return
+
+        # 0. Asegurarse de que la pestaña "Música" esté activa en el notebook
+        #    (por si el usuario estaba viendo Cola, Podcasts, etc.)
+        self.notebook.set_current_page(0)
 
         # 2. TRUCO DE OPTIMIZACIÓN: Evitar que GTK reconstruya la cuadrícula entera ahora
         self.albums_grid_dirty = False
@@ -2659,6 +2694,9 @@ class PlaylistWindow(Gtk.Window):
                 self.status_label.set_text(f"Error backup: {e}. Abortando.")
                 return
 
+        # Crear un mapa para obtener el start_time_ms desde la biblioteca
+        store_by_uri = {row[COL_URI]: row for row in self.store}
+
         tracks_to_copy = []
         for lt in unmatched:
             uri = lt["uri"]
@@ -2672,8 +2710,14 @@ class PlaylistWindow(Gtk.Window):
                         continue
                 except Exception:
                     continue
-                    
-            meta = ipod_copy.build_track_dict(uri, playlist_name=name)
+
+            # Obtener el start_time_ms del store (0 si no existe)
+            row = store_by_uri.get(lt["uri"])
+            start_ms = int(row[COL_START_TIME]) if row else 0
+
+            meta = ipod_copy.build_track_dict(
+                uri, playlist_name=name,
+                extra={"start_time_ms": start_ms})
             if meta:
                 meta["local_path"] = GLib.filename_from_uri(uri)[0]
                 tracks_to_copy.append(meta)
@@ -3368,7 +3412,8 @@ class PlaylistWindow(Gtk.Window):
                 "album": t_data.get("album", ""), "albumartist": t_data.get("albumartist", ""),
                 "genre": t_data.get("genre", ""), "track_nr": str(t_data.get("track_nr", 0)),
                 "cd_nr": str(t_data.get("cd_nr", 0)), "year": str(t_data.get("year", 0)),
-                "cover_uri": ipod.ipod_track_full_path(self.ipod_mount, t_data.get("ipod_path", "")) if self.ipod_mount else None
+                "cover_uri": ipod.ipod_track_full_path(self.ipod_mount, t_data.get("ipod_path", "")) if self.ipod_mount else None,
+                "start_time_ms": int(t_data.get("start_time_ms", 0)),
             }
         else:
             uri = self._get_single_selected_uri()
@@ -3384,7 +3429,8 @@ class PlaylistWindow(Gtk.Window):
                         "album": self.store.get_value(it, COL_ALBUM), "albumartist": self.store.get_value(it, COL_ALBUMARTIST),
                         "genre": self.store.get_value(it, COL_GENRE), "track_nr": str(self.store.get_value(it, COL_TRACK_NUM)),
                         "cd_nr": str(self.store.get_value(it, COL_CD_NUM)), "year": str(self.store.get_value(it, COL_YEAR)),
-                        "cover_uri": uri
+                        "cover_uri": uri,
+                        "start_time_ms": int(self.store.get_value(it, COL_START_TIME)),
                     }
                     break
                 it = self.store.iter_next(it)
@@ -3428,6 +3474,7 @@ class PlaylistWindow(Gtk.Window):
         add_row(2, _("Álbum:"), info["album"]); add_row(3, _("Artista del Álbum:"), info["albumartist"])
         add_row(4, _("Género:"), info["genre"]); add_row(5, _("Número de Pista:"), info["track_nr"])
         add_row(6, _("Número de Disco:"), info["cd_nr"]); add_row(7, _("Año:"), info["year"])
+        add_row(8, _("Inicio:"), _ms_to_mmss(info.get("start_time_ms", 0)))
 
         dialog.show_all()
         response = dialog.run()
@@ -3488,6 +3535,7 @@ class PlaylistWindow(Gtk.Window):
         add_edit_row(5, _("Número de Pista:"), "track_nr", info["track_nr"], editable=is_ipod)
         add_edit_row(6, _("Número de Disco:"), "cd_nr", info["cd_nr"], editable=is_ipod)
         add_edit_row(7, _("Año:"), "year", info["year"], editable=is_ipod)
+        add_edit_row(8, _("Inicio (MM:SS):"), "start_time", _ms_to_mmss(info.get("start_time_ms", 0)))
 
         apply_album_check = None
         if not is_ipod:
@@ -3512,6 +3560,8 @@ class PlaylistWindow(Gtk.Window):
                 if key in ("track_nr", "cd_nr", "year"):
                     try: new_data[key] = int(val) if val else 0
                     except: new_data[key] = 0
+                elif key == "start_time":
+                    new_data["start_time_ms"] = _mmss_to_ms(val)
                 else:
                     new_data[key] = val
             
@@ -3537,6 +3587,7 @@ class PlaylistWindow(Gtk.Window):
                     if uri_match:
                         self.store.set_value(it, COL_TITLE, new_data["title"])
                         self.store.set_value(it, COL_TRACK_NUM, new_data["track_nr"])
+                        self.store.set_value(it, COL_START_TIME, new_data["start_time_ms"])
                     if uri_match or (apply_to_all and artist_match and album_match):
                         self.store.set_value(it, COL_ARTIST, new_data["artist"])
                         self.store.set_value(it, COL_ALBUM, new_data["album"])
@@ -3566,8 +3617,9 @@ class PlaylistWindow(Gtk.Window):
                         pass
 
                 errores_tags = []
+                tag_data = {k: v for k, v in new_data.items() if k != "start_time_ms"}
                 for fname_tmp in archivos_a_actualizar:
-                    ok_tags, err_tags = tags.write_tags(fname_tmp, new_data)
+                    ok_tags, err_tags = tags.write_tags(fname_tmp, tag_data)
                     if not ok_tags:
                         errores_tags.append(os.path.basename(fname_tmp))
 
@@ -4292,10 +4344,6 @@ class PlaylistWindow(Gtk.Window):
         if not uris:
             self.status_label.set_text(_('Selecciona alguna canción primero'))
             return
-        if not self.playlists:
-            self.status_label.set_text(
-                _('No tienes listas. Crea una primero con el botón +'))
-            return
 
         dialog = Gtk.Dialog(
             title=_('Añadir a lista'),
@@ -4303,34 +4351,82 @@ class PlaylistWindow(Gtk.Window):
         )
         dialog.add_buttons("Cancelar", Gtk.ResponseType.CANCEL,
                            "Añadir", Gtk.ResponseType.OK)
+        dialog.set_default_size(420, -1)
         box = dialog.get_content_area()
         box.set_spacing(8)
         box.set_border_width(10)
+
         label = Gtk.Label(
             label=f"{len(uris)} canción(es) → ¿a qué lista?")
         label.set_halign(Gtk.Align.START)
         box.pack_start(label, False, False, 0)
+
+        box.pack_start(Gtk.Separator(), False, False, 0)
+
+        existing_label = Gtk.Label(label=_('Añadir a una lista existente:'))
+        existing_label.set_halign(Gtk.Align.START)
+        box.pack_start(existing_label, False, False, 0)
+
         combo = Gtk.ComboBoxText()
-        for pl in self.playlists:
+        manual_playlists = [pl for pl in self.playlists if not playlists_mod.is_smart(pl)]
+        for pl in manual_playlists:
             combo.append(pl["id"], pl["name"])
-        combo.set_active(0)
+        if manual_playlists:
+            combo.set_active(0)
+        else:
+            combo.set_sensitive(False)
+            combo.append("__none__", "(no hay listas manuales)")
+            combo.set_active(0)
         box.pack_start(combo, False, False, 0)
+
+        box.pack_start(Gtk.Separator(), False, False, 0)
+
+        new_label = Gtk.Label(label=_('O crear una nueva lista:'))
+        new_label.set_halign(Gtk.Align.START)
+        box.pack_start(new_label, False, False, 0)
+
+        new_entry = Gtk.Entry()
+        new_entry.set_placeholder_text(_('Nombre de la nueva lista (opcional)'))
+        box.pack_start(new_entry, False, False, 0)
+
         dialog.show_all()
-        if dialog.run() == Gtk.ResponseType.OK:
-            pl_id = combo.get_active_id()
-            pl = self._get_playlist(pl_id)
-            if pl:
-                existing = set(pl["uris"])
-                added = 0
-                for u in uris:
-                    if u not in existing:
-                        pl["uris"].append(u)
-                        existing.add(u)
-                        added += 1
+        response = dialog.run()
+
+        if response == Gtk.ResponseType.OK:
+            new_name = new_entry.get_text().strip()
+            if new_name:
+                # Crear lista nueva con las canciones seleccionadas
+                pl = playlists_mod.new_playlist(new_name, uris=list(uris))
+                self.playlists.append(pl)
                 playlists_mod.save(self.playlists)
-                self._rebuild_playlists_listbox(select_id=self.current_playlist_id)
+                self._rebuild_playlists_listbox(select_id=pl["id"])
                 self.status_label.set_text(
-                    f"{added} canción(es) añadida(s) a «{pl['name']}»")
+                    _f("{} canción(es) añadida(s) a nueva lista «{}»",
+                       len(uris), new_name))
+            elif manual_playlists:
+                # Añadir a lista existente
+                pl_id = combo.get_active_id()
+                pl = self._get_playlist(pl_id)
+                if pl:
+                    existing = set(pl["uris"])
+                    added = 0
+                    for u in uris:
+                        if u not in existing:
+                            pl["uris"].append(u)
+                            existing.add(u)
+                            added += 1
+                    playlists_mod.save(self.playlists)
+                    self._rebuild_playlists_listbox(select_id=self.current_playlist_id)
+                    if added > 0:
+                        self.status_label.set_text(
+                            f"{added} canción(es) añadida(s) a «{pl['name']}»")
+                    else:
+                        self.status_label.set_text(
+                            _f("Las canciones ya estaban en «{}»", pl['name']))
+            else:
+                self.status_label.set_text(
+                    _('No se seleccionó lista ni se creó una nueva'))
+
         dialog.destroy()
 
     def _collect_track_uris(self, parent_iter, out):
@@ -4396,6 +4492,7 @@ class PlaylistWindow(Gtk.Window):
         self.store.append([
             title, artist, album, self.fmt_time(dur_ns), uri, track_num,
             len(self.store), 0, 0, "", now, year, genre, albumartist, cd_num,
+            0,  # start_time_ms
         ])
         self.known_uris.add(uri)
         self._save_library()
@@ -4446,6 +4543,7 @@ class PlaylistWindow(Gtk.Window):
                 t.get("genre", ""),
                 t.get("albumartist", ""),
                 int(t.get("cd_num", 0)),
+                int(t.get("start_time_ms", 0)),
             ])
 
             self.known_uris.add(uri)
@@ -4486,6 +4584,7 @@ class PlaylistWindow(Gtk.Window):
                 "genre": row[COL_GENRE],
                 "albumartist": row[COL_ALBUMARTIST],
                 "cd_num": int(row[COL_CD_NUM]),
+                "start_time_ms": int(row[COL_START_TIME]),
             })
         library.save(tracks)
 
@@ -5010,6 +5109,7 @@ class PlaylistWindow(Gtk.Window):
         self.store.append([
             title, artist, album, self.fmt_time(dur_ns), uri, track_num,
             len(self.store), 0, 0, "", now, year, genre, albumartist, cd_num,
+            0,  # start_time_ms
         ])
         self.known_uris.add(uri)
         self.import_done += 1
@@ -5719,6 +5819,15 @@ class PlaylistWindow(Gtk.Window):
                 if norm in local_by_norm:
                     # Ya lo tenemos descargado
                     local_ep = local_by_norm[norm]
+                    # Rellenar el archivo .date si no existe (para episodios antiguos)
+                    try:
+                        local_path = GLib.filename_from_uri(local_ep["audio_url"])[0]
+                        date_file = os.path.splitext(local_path)[0] + ".date"
+                        if not os.path.exists(date_file) and ep.get("pub_date"):
+                            with open(date_file, "w", encoding="utf-8") as f:
+                                f.write(ep["pub_date"])
+                    except Exception as e:
+                        print(f"[podcast] No se pudo crear .date: {e}")
                     combined.append({
                         "title": title,  # Título bonito del feed
                         "pub_date": ep.get("pub_date", ""),
@@ -5862,6 +5971,7 @@ class PlaylistWindow(Gtk.Window):
             it = model.get_iter(path)
             audio_url = model.get_value(it, 5)
             title = model.get_value(it, 0)
+            pub_date = model.get_value(it, 1)  # <-- NUEVO: fecha de publicación
             progress = model.get_value(it, 4)
             if progress == 100:
                 already += 1
@@ -5869,7 +5979,13 @@ class PlaylistWindow(Gtk.Window):
             if not audio_url:
                 continue
             ref = Gtk.TreeRowReference.new(model, path)
-            self.download_queue.append({"title": title, "audio_url": audio_url, "ref": ref, "base_dir": base_dir})
+            self.download_queue.append({
+                "title": title,
+                "audio_url": audio_url,
+                "pub_date": pub_date,  # <-- NUEVO
+                "ref": ref,
+                "base_dir": base_dir
+            })
             model.set_value(it, 3, "En cola")
             model.set_value(it, 4, 0)
             model.set_value(it, 6, False)
@@ -5912,11 +6028,22 @@ class PlaylistWindow(Gtk.Window):
         def on_progress(downloaded, total):
             GLib.idle_add(self._update_download_progress, ref, downloaded, total)
         def worker():
-            path, err = podcasts.download_episode(item["audio_url"], item["base_dir"], item["title"], on_progress=on_progress)
-            GLib.idle_add(done, ref, err)
-        def done(ref, err):
+            path, err = podcasts.download_episode(
+                item["audio_url"], item["base_dir"], item["title"],
+                on_progress=on_progress)
+            GLib.idle_add(done, ref, path, err)
+
+        def done(ref, path, err):
             if self.shutting_down:
                 return False
+            # Guardar la fecha de publicación en un archivo .date junto al audio
+            if not err and path and item.get("pub_date"):
+                try:
+                    date_file = os.path.splitext(path)[0] + ".date"
+                    with open(date_file, "w", encoding="utf-8") as f:
+                        f.write(item["pub_date"])
+                except Exception as e:
+                    print(f"[podcast] No se pudo guardar la fecha: {e}")
             if ref.valid():
                 try:
                     it = model.get_iter(ref.get_path())
@@ -5934,6 +6061,7 @@ class PlaylistWindow(Gtk.Window):
                     pass
             self._process_next_download()
             return False
+
         threading.Thread(target=worker, daemon=True).start()
 
     def _update_download_progress(self, ref, downloaded, total):
@@ -7590,13 +7718,33 @@ class PlaylistWindow(Gtk.Window):
             # 2. Escanear podcasts descargados
             import re as _re
             def _ep_num(t):
-                m = _re.search(r"(?:episodio|episode)\s*(\d+)", t, re.IGNORECASE)
+                # Intento 1: formato Temporada/Episodio (T1E1, S01E01, 1x01)
+                m = (_re.search(r"[Ss](\d+)[\s._-]*[Ee](\d+)", t)
+                     or _re.search(r"[Tt](\d+)[\s._-]*[Ee](\d+)", t)
+                     or _re.search(r"\b(\d{1,2})[xX](\d{1,3})\b", t))
+                if m:
+                    return int(m.group(1)) * 1000 + int(m.group(2))
+                # Intento 2: "Episodio N" / "Episode N"
+                m = _re.search(r"(?:episodio|episode)\s*(\d+)", t, _re.IGNORECASE)
                 if m: return int(m.group(1))
-                m = _re.search(r"[Ee]\s*(\d+)", t)
+                # Intento 3: "E N"
+                m = _re.search(r"\b[Ee]\s*(\d+)\b", t)
                 if m: return int(m.group(1))
+                # Intento 4: último número del nombre
                 nums = _re.findall(r"\d+", t)
                 if nums: return int(nums[-1])
                 return 0
+
+            def _read_pub_date(audio_path):
+                """Lee la fecha de publicación desde un archivo .date hermano."""
+                date_file = os.path.splitext(audio_path)[0] + ".date"
+                if os.path.exists(date_file):
+                    try:
+                        with open(date_file, "r", encoding="utf-8") as f:
+                            return f.read().strip()
+                    except Exception:
+                        pass
+                return ""
 
             local_pods = []
             if os.path.isdir(PODCAST_DIR):
@@ -7607,7 +7755,16 @@ class PlaylistWindow(Gtk.Window):
                              if not f.endswith(".part") and f.lower().endswith(AUDIO_EXT)]
                     if not files: continue
                     
-                    files.sort(key=lambda f: (_ep_num(os.path.basename(f)), os.path.basename(f)))
+                    # Ordenar por fecha de publicación (si existe el .date),
+                    # y como respaldo por número de episodio y nombre.
+                    def _sort_key(fpath):
+                        base = os.path.basename(fpath)
+                        date = _read_pub_date(fpath)
+                        num = _ep_num(base)
+                        if date:
+                            return (0, date, num, base.lower())
+                        return (1, "", num, base.lower())
+                    files.sort(key=_sort_key)
                     
                     sub = next((s for s in self.subscriptions if s.get("title") == folder), None)
                     author = sub.get("author", folder) if sub else folder
@@ -7765,10 +7922,16 @@ class PlaylistWindow(Gtk.Window):
                 # 2. Copiar música nueva
                 if new_unmatched_pc:
                     GLib.idle_add(self.status_label.set_text, f"Sincronizando {len(new_unmatched_pc)} pistas…")
+                    # Mapa para obtener el start_time_ms
+                    store_by_uri = {row[COL_URI]: row for row in self.store}
                     tracks_to_copy = []
                     for lt in new_unmatched_pc:
-                        meta = ipod_copy.build_track_dict(lt["uri"])
-                        if meta: tracks_to_copy.append(meta)
+                        row = store_by_uri.get(lt["uri"])
+                        start_ms = int(row[COL_START_TIME]) if row else 0
+                        meta = ipod_copy.build_track_dict(
+                            lt["uri"], extra={"start_time_ms": start_ms})
+                        if meta:
+                            tracks_to_copy.append(meta)
                     
                     if tracks_to_copy:
                         ok, cout, cerr = ipod_copy.copy_tracks(
@@ -8004,9 +8167,10 @@ class PlaylistWindow(Gtk.Window):
                 _('No hay episodios descargados de este podcast'))
             return
 
-        # Orden ascendente. Primero intentamos por número del título
-        # (para que "Episodio 10" vaya después de "Episodio 2"), y
-        # como desempate usamos la fecha de publicación.
+        # Orden CRONOLÓGICO por fecha de publicación (más antiguo → más nuevo).
+        # La fecha manda sobre el número, porque hay podcasts con múltiples
+        # temporadas donde todos los "Episodio 1" se llaman igual ("T1E1",
+        # "T2E1"...). El número y el título solo sirven como desempate.
         import re as _re
         def _episode_number(title):
             t = title or ""
@@ -8022,59 +8186,29 @@ class PlaylistWindow(Gtk.Window):
             return 0
 
         def _podcast_sort_key(e):
-            num = _episode_number(e.get("title", ""))
-            date = e.get("pub_date") or "9999-99-99"
-            # Si hay número, manda el número. Si no, manda la fecha.
-            if num > 0:
-                return (0, num, date)
-            return (1, 0, date)
+            title = e.get("title", "")
+            date = (e.get("pub_date") or "").strip()
+            num = _episode_number(title)
+            if date:
+                # Con fecha: orden cronológico. Desempate por número y título.
+                return (0, date, num, title.lower())
+            # Sin fecha: al final, ordenados por número de episodio.
+            return (1, "", num, title.lower())
 
         episodes.sort(key=_podcast_sort_key)
 
-        # Cruzar con lo que hay en el iPod
+        # Identificar TODAS las pistas del iPod que pertenecen a este podcast
+        # (álbum == podcast_title y mediatype podcast). Se eliminarán para
+        # recrear la lista desde cero con el orden correcto por fecha.
         ipod_tracks = self.ipod_data.get("tracks", [])
-        ipod_album_tracks = [
-            t for t in ipod_tracks
-            if t.get("album", "") == podcast_title
-        ]
-        expected_titles = set(e["title"] for e in episodes)
-
-        ipod_by_title = {}
-        for t in ipod_album_tracks:
-            title = t.get("title", "")
-            if title in expected_titles:
-                ipod_by_title[title] = t
-
-        to_copy = []      # (episode, track_nr)
-        to_update = []    # (id, track_nr)
-        to_delete = []    # id
-
-        for i, ep in enumerate(episodes):
-            expected_tnr = i + 1
-            ipod_t = ipod_by_title.get(ep["title"])
-            if ipod_t is None:
-                to_copy.append((ep, expected_tnr))
-            else:
-                if int(ipod_t.get("track_nr", 0)) != expected_tnr:
-                    to_update.append((int(ipod_t["id"]), expected_tnr))
-
-        for t in ipod_album_tracks:
-            title = t.get("title", "")
-            if title in expected_titles:
-                continue
-            # Huérfano: en el iPod (con mediatype podcast) pero ya no
-            # está descargado. Solo borramos si tiene el bit podcast.
-            if int(t.get("mediatype", 0)) & 0x04:
+        to_delete = []
+        for t in ipod_tracks:
+            if (t.get("album", "") == podcast_title
+                    and int(t.get("mediatype", 0)) & 0x04):
                 to_delete.append(int(t["id"]))
 
-        n_new = len(to_copy)
-        n_update = len(to_update)
+        n_new = len(episodes)
         n_delete = len(to_delete)
-
-        if n_new == 0 and n_update == 0 and n_delete == 0:
-            self.episodes_status.set_text(
-                _('El iPod ya está sincronizado con este podcast'))
-            return
 
         # Diálogo de confirmación
         dlg = Gtk.MessageDialog(
@@ -8084,11 +8218,10 @@ class PlaylistWindow(Gtk.Window):
             text=f"Enviar «{podcast_title}» al iPod",
         )
         dlg.format_secondary_text(
-            f"Episodios descargados: {len(episodes)}\n"
-            f"A copiar (nuevos): {n_new}\n"
-            f"A renumerar: {n_update}\n"
-            f"A eliminar del iPod (huérfanos): {n_delete}\n\n"
-            f"Se ordenarán de más antiguo a más nuevo.\n"
+            f"Episodios descargados: {n_new}\n"
+            f"Se eliminarán del iPod: {n_delete} pista(s) existente(s)\n"
+            f"Se copiarán de nuevo: {n_new} episodio(s)\n\n"
+            f"Se ordenarán de más antiguo a más nuevo por fecha real.\n"
             f"¿Continuar?"
         )
         dlg.set_default_response(Gtk.ResponseType.YES)
@@ -8120,70 +8253,55 @@ class PlaylistWindow(Gtk.Window):
                         backup_dir,
                         f"iTunesDB-antes-podcast-{stamp}"))
 
-                # 1. Borrar huérfanos
+                # 1. Borrar TODAS las pistas existentes de este podcast
                 if to_delete:
                     out, err = ipod_write.delete_tracks(
                         self.ipod_mount, to_delete)
                     if err:
                         GLib.idle_add(
                             self.episodes_status.set_text,
-                            f"Error eliminando huérfanos: {err[:150]}")
+                            f"Error eliminando pistas antiguas: {err[:150]}")
                         return
                     try:
                         os.sync()
                     except Exception:
                         pass
 
-                # 2. Copiar nuevos
-                if to_copy:
-                    tracks = []
-                    for ep, tnr in to_copy:
-                        meta = ipod_copy.build_track_dict(
-                            GLib.filename_to_uri(ep["path"], None),
-                            extra={
-                                "mediatype": 4,
-                                "podcastrss": sub.get("feed_url", ""),
-                                "track_nr": tnr,
-                                "cd_nr": 1,
-                                "title": ep["title"],
-                                "artist": author,
-                                "album": podcast_title,
-                                "albumartist": author,
-                                "playlist_name": podcast_title,
-                            },
-                        )
-                        if meta:
-                            tracks.append(meta)
-                    if tracks:
-                        ok2, cout, cerr = ipod_copy.copy_tracks(
-                            self.ipod_mount, tracks, dry_run=False,
-                            progress_callback=lambda line: GLib.idle_add(
-                                self.status_label.set_text, _f("Sincronizando podcast: {}", line)))
-                        if cerr:
-                            GLib.idle_add(
-                                self.episodes_status.set_text,
-                                f"Error Sincronizando: {cerr[:1500]}")
-                            return
-                        try:
-                            os.sync()
-                        except Exception:
-                            pass
-
-                # 3. Renumerar existentes
-                if to_update:
-                    out, err = ipod_write.update_track_nr(
-                        self.ipod_mount, to_update)
-                    if err:
+                # 2. Copiar TODAS las pistas descargadas, ordenadas por fecha
+                tracks = []
+                for i, ep in enumerate(episodes):
+                    meta = ipod_copy.build_track_dict(
+                        GLib.filename_to_uri(ep["path"], None),
+                        extra={
+                            "mediatype": 4,
+                            "podcastrss": sub.get("feed_url", ""),
+                            "track_nr": i + 1,
+                            "cd_nr": 1,
+                            "title": ep["title"],
+                            "artist": author,
+                            "album": podcast_title,
+                            "albumartist": author,
+                            "playlist_name": podcast_title,
+                        },
+                    )
+                    if meta:
+                        tracks.append(meta)
+                if tracks:
+                    ok2, cout, cerr = ipod_copy.copy_tracks(
+                        self.ipod_mount, tracks, dry_run=False,
+                        progress_callback=lambda line: GLib.idle_add(
+                            self.status_label.set_text, _f("Sincronizando podcast: {}", line)))
+                    if cerr:
                         GLib.idle_add(
                             self.episodes_status.set_text,
-                            f"Error renumerando: {err[:150]}")
+                            f"Error Sincronizando: {cerr[:1500]}")
                         return
                     try:
                         os.sync()
                     except Exception:
                         pass
 
-                # 4. Releer iPod
+                # 3. Releer iPod
                 data, rerr = ipod.read_ipod(self.ipod_mount)
                 if rerr:
                     GLib.idle_add(
@@ -8477,8 +8595,13 @@ class PlaylistWindow(Gtk.Window):
         mount = self.ipod_mount
 
         tracks_to_copy = []
+        # Mapa para obtener el start_time_ms
+        store_by_uri = {row[COL_URI]: row for row in self.store}
         for lt in unmatched:
-            meta = ipod_copy.build_track_dict(lt["uri"])
+            row = store_by_uri.get(lt["uri"])
+            start_ms = int(row[COL_START_TIME]) if row else 0
+            meta = ipod_copy.build_track_dict(
+                lt["uri"], extra={"start_time_ms": start_ms})
             if meta:
                 tracks_to_copy.append(meta)
 
@@ -8490,7 +8613,35 @@ class PlaylistWindow(Gtk.Window):
             rss = sub.get("feed_url", "") if sub else ""
             files = [f for f in glob.glob(os.path.join(folder_path, "*"))
                      if not f.endswith(".part") and f.lower().endswith(AUDIO_EXT)]
-            files.sort()
+            def _sort_key_selection(fpath):
+                base = os.path.basename(fpath)
+                date_file = os.path.splitext(fpath)[0] + ".date"
+                date = ""
+                if os.path.exists(date_file):
+                    try:
+                        with open(date_file, "r", encoding="utf-8") as f:
+                            date = f.read().strip()
+                    except Exception:
+                        pass
+                # Extraer número de episodio como respaldo
+                import re as _re2
+                t = base
+                m = (_re2.search(r"[Ss](\d+)[\s._-]*[Ee](\d+)", t)
+                     or _re2.search(r"[Tt](\d+)[\s._-]*[Ee](\d+)", t)
+                     or _re2.search(r"\b(\d{1,2})[xX](\d{1,3})\b", t))
+                if m:
+                    num = int(m.group(1)) * 1000 + int(m.group(2))
+                else:
+                    m = _re2.search(r"(?:episodio|episode)\s*(\d+)", t, _re2.IGNORECASE)
+                    if m:
+                        num = int(m.group(1))
+                    else:
+                        nums = _re2.findall(r"\d+", t)
+                        num = int(nums[-1]) if nums else 0
+                if date:
+                    return (0, date, num, base.lower())
+                return (1, "", num, base.lower())
+            files.sort(key=_sort_key_selection)
             for i, fpath in enumerate(files):
                 pod_episodes.append({
                     "path": fpath,
@@ -8517,6 +8668,39 @@ class PlaylistWindow(Gtk.Window):
                 if err:
                     GLib.idle_add(self.status_label.set_text,
                                   f"Error Sincronizando al iPod: {err[:150]}")
+                    return
+
+            # Releer iPod para obtener la lista actualizada de pistas
+            data_now, rerr = ipod.read_ipod(mount)
+            if rerr:
+                GLib.idle_add(self.status_label.set_text,
+                              f"Error releyendo iPod: {rerr[:150]}")
+                return
+            ipod_tracks_now = data_now.get("tracks", [])
+
+            # Identificar pistas de podcast existentes que correspondan
+            # a los podcasts seleccionados y eliminarlas para no duplicar.
+            selected_titles = set()
+            for folder_path in selected_podcasts:
+                selected_titles.add(os.path.basename(folder_path))
+
+            to_delete_pods = []
+            for t in ipod_tracks_now:
+                if (t.get("album", "") in selected_titles
+                        and int(t.get("mediatype", 0)) & 0x04):
+                    to_delete_pods.append(int(t["id"]))
+
+            if to_delete_pods:
+                GLib.idle_add(self.status_label.set_text,
+                              f"Eliminando {len(to_delete_pods)} episodios antiguos de podcasts…")
+                out, err = ipod_write.delete_tracks(mount, to_delete_pods)
+                try:
+                    os.sync()
+                except Exception:
+                    pass
+                if err:
+                    GLib.idle_add(self.status_label.set_text,
+                                  f"Error eliminando podcasts: {err[:150]}")
                     return
 
             if pod_episodes:
@@ -8645,9 +8829,14 @@ class PlaylistWindow(Gtk.Window):
 
     def _send_to_ipod_copy(self, matched, unmatched):
         mount = self.ipod_mount
+        # Mapa para obtener el start_time_ms
+        store_by_uri = {row[COL_URI]: row for row in self.store}
         tracks_to_copy = []
         for lt in unmatched:
-            meta = ipod_copy.build_track_dict(lt["uri"])
+            row = store_by_uri.get(lt["uri"])
+            start_ms = int(row[COL_START_TIME]) if row else 0
+            meta = ipod_copy.build_track_dict(
+                lt["uri"], extra={"start_time_ms": start_ms})
             if meta:
                 tracks_to_copy.append(meta)
 

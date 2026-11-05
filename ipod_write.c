@@ -360,6 +360,10 @@ static int do_update_metadata(Itdb_iTunesDB *db, const char *json_file, int dry_
             JsonNode *node = json_object_get_member(obj, "year");
             if (JSON_NODE_HOLDS_VALUE(node)) t->time_released = (guint32)json_node_get_int(node);
         }
+        if (json_object_has_member(obj, "start_time_ms")) {
+            JsonNode *node = json_object_get_member(obj, "start_time_ms");
+            if (JSON_NODE_HOLDS_VALUE(node)) t->starttime = (guint32)json_node_get_int(node);
+        }
 
         updated++;
     }

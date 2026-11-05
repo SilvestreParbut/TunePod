@@ -58,6 +58,7 @@ static int copy_one_track(Itdb_iTunesDB *db, const char *mount, JsonObject *obj,
     int duration_ms = json_get_int(obj, "duration_ms");
     int bitrate = json_get_int(obj, "bitrate");
     int samplerate = json_get_int(obj, "samplerate");
+    int start_time_ms = json_get_int(obj, "start_time_ms");
 
     int rc = 0;
     
@@ -108,6 +109,7 @@ static int copy_one_track(Itdb_iTunesDB *db, const char *mount, JsonObject *obj,
     track->bitrate = bitrate;
     track->samplerate = samplerate;
     track->size = (gint32)local_size;
+    if (start_time_ms > 0) track->starttime = (guint32)start_time_ms;
 
     if (track->mediatype == ITDB_MEDIATYPE_PODCAST) {
         track->skip_when_shuffling = 1;

@@ -1,5 +1,5 @@
 Package: tunepod
-Version: 1.0.7
+Version: 1.0.8
 Section: sound
 Priority: optional
 Architecture: amd64

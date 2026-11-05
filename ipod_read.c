@@ -79,6 +79,7 @@ int main(int argc, char *argv[]) {
         printf(", \"size\": %d",     (int)t->size);
         printf(", \"ipod_path\": ");  json_string(t->ipod_path);
         printf(", \"mediatype\": %d", (int)t->mediatype);
+        printf(", \"start_time_ms\": %u", (unsigned)t->starttime);
         printf("}");
     }
     printf("\n  ],\n");
