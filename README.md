@@ -5,13 +5,23 @@
 ## Features
 
 *   **Music Player:** Play your local files (.mp3, .m4a, .flac, .ogg, .wav).
-*   **Podcast Manager:** Search for, subscribe to, and download episodes directly from the app.
+*   **Podcast Manager:** Search for, subscribe to, and download episodes directly from the app using the iTunes database.
 *   **Metadata Editor:** Edit song titles, artists, albums, and cover art.
-*   **iPod Synchronization:** Copy music, manage playlists, and sync statistics (play counts and ratings).
-*   **Firmware Restoration:** Includes tools to restore 1st–4th generation iPods and iPod Minis.
+*   **iPod Synchronization:** Copy music (iPod to PC, PC to ipod), manage playlists, and sync statistics (play counts and ratings).
+*   **Firmware Restoration:** Includes tools to restore 1st–4th/photo generation iPods and iPod Minis.
 *   **Adaptable Interface:** Dark/light mode and bilingual support (Spanish/English).
 
-## Installation (from source code)
+## Supported and tested iPods
+
+Currently, TunePod offers theoretical support for the 1st, 2nd, 3rd, 4th, Photo, Mini 1, and Mini 2 models.
+It has been physically tested for synchronization and firmware restoration on:
+-iPod 4th gen: usb and firewire
+
+## Podcast
+
+The iPod’s firmware sorts podcasts from newest to oldest and plays only one at a time, which is inconvenient for listening to audio series. To address this, TunePod sorts podcasts in the iPod menu from oldest to newest; it also creates a playlist for each podcast —updated with every synchronization— that arranges episodes from oldest to newest and allows for continuous, sequential playback.
+
+## Run from Python script
 
 TunePod requires Python 3, GTK, GStreamer, and the `libgpod` development libraries. 1.  Clone the repository:
 git clone https://github.com/SilvestreParbut/TunePod.git
@@ -20,9 +30,9 @@ cd TunePod
 2.  Run the application:
 python3 player.py
 
-## Universal instalator by terminal
+## Universal installer by terminal
 
-Copy and run this into your terminal:
+Copy and run this into your terminal to install Tunepod on your linux system:
 
 curl -sL https://raw.githubusercontent.com/SilvestreParbut/TunePod/main/instalar_tunepod.sh | bash
 
@@ -39,13 +49,13 @@ bash build_deb.sh
 3.  Install the generated package:
 sudo apt install ./tunepod_*.deb
 
-##¿Por qué no hay una versión Flatpak?
+## Why is there no Flatpak version?
 
-TunePod necesita acceso directo al hardware para expulsar el iPod de forma segura y restaurar el firmware. El aislamiento (sandbox) de Flatpak impide estas operaciones críticas, por lo que la versión oficial y recomendada es el paquete 
+TunePod requires direct access to the hardware in order to safely eject the iPod and restore its firmware. The Flatpak sandbox prevents these critical operations
 
 ## Contributing
 
-If you encounter any bugs or have an idea to improve TunePod, feel free to open an **Issue** or submit a **Pull Request**. Any help is welcome!
+If you find any errors, have an idea to improve TunePod, or have tested TunePod with a generation not included in the list above, please feel free to open an **issue** or submit a **pull request**. Any help is welcome!
 
 ## License
 
