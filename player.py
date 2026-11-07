@@ -7836,35 +7836,39 @@ class PlaylistWindow(Gtk.Window):
                     text=_('No hay suficiente espacio en el iPod')
                 )
                 dialog_err.format_secondary_text(
-                    f"Necesitas copiar {needed_gb:.2f} GB, pero solo hay {free_gb:.2f} GB libres en el iPod.\n\n"
-                    f"Para poder sincronizar, puedes:\n"
-                    f"• Eliminar música del iPod.\n"
-                    f"• Usar 'Sincronización selectiva' para elegir solo algunos artistas, listas o podcasts."
+                    _f("Necesitas copiar {:.2f} GB, pero solo hay {:.2f} GB libres en el iPod.\n\n"
+                       "Para poder sincronizar, puedes:\n"
+                       "• Eliminar música del iPod.\n"
+                       "• Usar 'Sincronización selectiva' para elegir solo algunos artistas, listas o podcasts.",
+                       needed_gb, free_gb)
                 )
-                dialog_err.add_button("Entendido", Gtk.ResponseType.OK)
+                dialog_err.add_button(_("Entendido"), Gtk.ResponseType.OK)
                 dialog_err.run()
                 dialog_err.destroy()
                 return
 
-
-
             # 6. Mostrar resumen exacto y desglosado
             dialog = Gtk.Dialog(title=_('Sincronización con iPod'), transient_for=self, modal=True)
             dialog.set_default_size(550, -1)
-            dialog.add_buttons("Cancelar", Gtk.ResponseType.CANCEL, "Sincronizar Ahora", Gtk.ResponseType.OK)
+            dialog.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL, _("Sincronizar Ahora"), Gtk.ResponseType.OK)
             area = dialog.get_content_area()
             area.set_spacing(10); area.set_border_width(16)
             
             lbl = Gtk.Label()
             lbl.set_markup(
-                f"<b>--- MÚSICA ---</b>\n"
-                f"PC: {len(local_tracks)} pistas | iPod: {len(ipod_tracks_music)} pistas\n"
-                f"A copiar: {len(new_unmatched_pc)} | A eliminar: {len(to_delete_tracks) - len([t for t in to_delete_tracks if int(t.get('mediatype',0)) & 0x04])}\n\n"
-                f"<b>--- PODCASTS ---</b>\n"
-                f"PC (descargados): {len(local_pods)} | iPod: {len(ipod_pods)}\n"
-                f"A copiar/actualizar: {len(pods_to_copy) + len(pods_to_update)} | A eliminar: {len([t for t in to_delete_tracks if int(t.get('mediatype',0)) & 0x04])}\n\n"
-                f"Estadísticas actualizadas en el PC: {stats_updated}\n\n"
-                f"Espacio necesario: {needed_gb:.2f} GB | Espacio libre: {free_gb:.2f} GB"
+                _f("<b>--- MÚSICA ---</b>\n"
+                   "PC: {} pistas | iPod: {} pistas\n"
+                   "A copiar: {} | A eliminar: {}\n\n"
+                   "<b>--- PODCASTS ---</b>\n"
+                   "PC (descargados): {} | iPod: {}\n"
+                   "A copiar/actualizar: {} | A eliminar: {}\n\n"
+                   "Estadísticas actualizadas en el PC: {}\n\n"
+                   "Espacio necesario: {:.2f} GB | Espacio libre: {:.2f} GB",
+                   len(local_tracks), len(ipod_tracks_music),
+                   len(new_unmatched_pc), len(to_delete_tracks) - len([t for t in to_delete_tracks if int(t.get('mediatype',0)) & 0x04]),
+                   len(local_pods), len(ipod_pods),
+                   len(pods_to_copy) + len(pods_to_update), len([t for t in to_delete_tracks if int(t.get('mediatype',0)) & 0x04]),
+                   stats_updated, needed_gb, free_gb)
             )
             lbl.set_halign(Gtk.Align.START)
             lbl.set_line_wrap(True)
@@ -7872,11 +7876,11 @@ class PlaylistWindow(Gtk.Window):
 
             # Desplegable para ver exactamente qué se va a borrar
             if to_delete_tracks:
-                expander = Gtk.Expander(label=f"Ver las {len(to_delete_tracks)} pistas que se eliminarán del iPod")
+                expander = Gtk.Expander(label=_f("Ver las {} pistas que se eliminarán del iPod", len(to_delete_tracks)))
                 box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
                 box.set_border_width(6)
                 for t in to_delete_tracks:
-                    tipo = "[Podcast]" if int(t.get("mediatype", 0)) & 0x04 else "[Música]"
+                    tipo = _("[Podcast]") if int(t.get("mediatype", 0)) & 0x04 else _("[Música]")
                     lbl_t = Gtk.Label(label=f"  {tipo} {t.get('artist', '?')} — {t.get('title', '?')}", xalign=0)
                     lbl_t.set_ellipsize(Pango.EllipsizeMode.END)
                     box.pack_start(lbl_t, False, False, 0)
@@ -7980,7 +7984,7 @@ class PlaylistWindow(Gtk.Window):
                     try: os.sync()
                     except: pass
                         
-                GLib.idle_add(self.status_label.set_text, "Sincronización completada. Releyendo iPod…")
+                GLib.idle_add(self.status_label.set_text, _("Sincronización completada. Releyendo iPod…"))
                 data, rerr = ipod.read_ipod(self.ipod_mount)
                 if not rerr:
                     GLib.idle_add(self._on_ipod_read, self.ipod_mount, data, None)
@@ -8215,14 +8219,15 @@ class PlaylistWindow(Gtk.Window):
             transient_for=self, modal=True,
             message_type=Gtk.MessageType.QUESTION,
             buttons=Gtk.ButtonsType.YES_NO,
-            text=f"Enviar «{podcast_title}» al iPod",
+            text=_f("Enviar «{}» al iPod", podcast_title),
         )
         dlg.format_secondary_text(
-            f"Episodios descargados: {n_new}\n"
-            f"Se eliminarán del iPod: {n_delete} pista(s) existente(s)\n"
-            f"Se copiarán de nuevo: {n_new} episodio(s)\n\n"
-            f"Se ordenarán de más antiguo a más nuevo por fecha real.\n"
-            f"¿Continuar?"
+            _f("Episodios descargados: {}\n"
+               "Se eliminarán del iPod: {} pista(s) existente(s)\n"
+               "Se copiarán de nuevo: {} episodio(s)\n\n"
+               "Se ordenarán de más antiguo a más nuevo por fecha real.\n"
+               "¿Continuar?",
+               n_new, n_delete, n_new)
         )
         dlg.set_default_response(Gtk.ResponseType.YES)
         ok = dlg.run() == Gtk.ResponseType.YES
@@ -8235,7 +8240,7 @@ class PlaylistWindow(Gtk.Window):
             return
 
         self.episodes_status.set_text(_('Enviando podcast al iPod…'))
-        self.status_label.set_text(f"Enviando «{podcast_title}» al iPod. Por favor, espera…")
+        self.status_label.set_text(_f("Enviando «{}» al iPod. Por favor, espera…", podcast_title))
 
         def worker():
             try:
@@ -8260,7 +8265,7 @@ class PlaylistWindow(Gtk.Window):
                     if err:
                         GLib.idle_add(
                             self.episodes_status.set_text,
-                            f"Error eliminando pistas antiguas: {err[:150]}")
+                            _f("Error eliminando pistas antiguas: {}", err[:150]))
                         return
                     try:
                         os.sync()
@@ -8294,7 +8299,7 @@ class PlaylistWindow(Gtk.Window):
                     if cerr:
                         GLib.idle_add(
                             self.episodes_status.set_text,
-                            f"Error Sincronizando: {cerr[:1500]}")
+                            _f("Error Sincronizando: {}", cerr[:1500]))
                         return
                     try:
                         os.sync()
@@ -8306,17 +8311,17 @@ class PlaylistWindow(Gtk.Window):
                 if rerr:
                     GLib.idle_add(
                         self.episodes_status.set_text,
-                        f"Sincronizado, pero falló releer: {rerr[:100]}")
+                        _f("Sincronizado, pero falló releer: {}", rerr[:100]))
                     return
                 GLib.idle_add(self._on_ipod_read,
                               self.ipod_mount, data, None)
                 GLib.idle_add(
                     self.episodes_status.set_text,
-                    f"«{podcast_title}» sincronizado al iPod")
+                    _f("«{}» sincronizado al iPod", podcast_title))
             except Exception as e:
                 GLib.idle_add(
                     self.episodes_status.set_text,
-                    f"Error inesperado: {e}")
+                    _f("Error inesperado: {}", e))
 
         threading.Thread(target=worker, daemon=True).start()
 

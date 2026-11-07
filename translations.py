@@ -234,6 +234,21 @@ TRANSLATIONS = {
         "¿Añadir {} canciones a tu biblioteca?": "Add {} songs to your library?",
         "Se agregarán a la biblioteca de TunePod para que puedas reproducirlas sin el iPod conectado.\n\nSi solo estás rescatando música para un amigo, elige 'No'. Los archivos ya se habrán copiado a la carpeta que elegiste.": "They will be added to your TunePod library so you can play them without the iPod connected.\n\nIf you're just rescuing music for a friend, choose 'No'. The files will already have been copied to the folder you chose.",
 
+        # === Nuevas traducciones para diálogos de sincronización ===
+        "<b>--- MÚSICA ---</b>\nPC: {} pistas | iPod: {} pistas\nA copiar: {} | A eliminar: {}\n\n<b>--- PODCASTS ---</b>\nPC (descargados): {} | iPod: {}\nA copiar/actualizar: {} | A eliminar: {}\n\nEstadísticas actualizadas en el PC: {}\n\nEspacio necesario: {:.2f} GB | Espacio libre: {:.2f} GB": "<b>--- MUSIC ---</b>\nPC: {} tracks | iPod: {} tracks\nTo copy: {} | To delete: {}\n\n<b>--- PODCASTS ---</b>\nPC (downloaded): {} | iPod: {}\nTo copy/update: {} | To delete: {}\n\nStats updated on PC: {}\n\nSpace needed: {:.2f} GB | Space free: {:.2f} GB",
+        "Ver las {} pistas que se eliminarán del iPod": "View the {} tracks that will be removed from the iPod",
+        "[Podcast]": "[Podcast]",
+        "[Música]": "[Music]",
+        "Necesitas copiar {:.2f} GB, pero solo hay {:.2f} GB libres en el iPod.\n\nPara poder sincronizar, puedes:\n• Eliminar música del iPod.\n• Usar 'Sincronización selectiva' para elegir solo algunos artistas, listas o podcasts.": "You need to copy {:.2f} GB, but there are only {:.2f} GB free on the iPod.\n\nTo sync, you can:\n• Remove music from the iPod.\n• Use 'Selective sync' to choose only some artists, playlists, or podcasts.",
+        "Enviar «{}» al iPod": "Send «{}» to iPod",
+        "Episodios descargados: {}\nSe eliminarán del iPod: {} pista(s) existente(s)\nSe copiarán de nuevo: {} episodio(s)\n\nSe ordenarán de más antiguo a más nuevo por fecha real.\n¿Continuar?": "Downloaded episodes: {}\nWill be removed from iPod: {} existing track(s)\nWill be copied again: {} episode(s)\n\nThey will be ordered from oldest to newest by actual date.\nContinue?",
+        "Enviando «{}» al iPod. Por favor, espera…": "Sending «{}» to iPod. Please wait...",
+        "Error eliminando pistas antiguas: {}": "Error deleting old tracks: {}",
+        "Error Sincronizando: {}": "Error syncing: {}",
+        "Sincronizado, pero falló releer: {}": "Synced, but re-reading failed: {}",
+        "«{}» sincronizado al iPod": "«{}» synced to iPod",
+        "Error inesperado: {}": "Unexpected error: {}",
+
         # === Mensajes estáticos ===
         "0 pistas": "0 tracks",
         "Selecciona alguna canción primero": "Select a song first",
