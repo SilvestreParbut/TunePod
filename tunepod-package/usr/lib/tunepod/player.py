@@ -38,7 +38,7 @@ import ipod
 import ipod_write
 import ipod_sync
 import ipod_copy
-APP_VERSION = "1.0.8"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
+APP_VERSION = "1.1.0"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
 Gst.init(None)
 try:
     Notify.init("TunePod")
@@ -1109,7 +1109,7 @@ class PlaylistWindow(Gtk.Window):
         """Muestra la ventana Acerca de."""
         dialog = Gtk.AboutDialog(transient_for=self, modal=True)
         dialog.set_program_name("TunePod")
-        dialog.set_version("1.0.8") # <-- Puedes cambiar esto con cada release
+        dialog.set_version("1.1.0") # <-- Puedes cambiar esto con cada release
         dialog.set_comments(_("Reproductor de música y gestor de iPod para Linux"))
         dialog.set_license_type(Gtk.License.GPL_3_0)
         dialog.set_website("https://github.com/SilvestreParbut/TunePod")
@@ -6524,6 +6524,66 @@ class PlaylistWindow(Gtk.Window):
             pass
         return None
 
+    def _get_ipod_firewire_id(self, mount_path):
+        """Obtiene el número de serie (Firewire ID) del iPod desde el sistema."""
+        block = self._block_device_for_mount(mount_path)
+        if not block:
+            return None
+        
+        import re
+        base_dev = re.sub(r'\d+$', '', block)
+        
+        # Método 1: Leer de sysfs (el más limpio y rápido)
+        dev_name = os.path.basename(base_dev)
+        sys_path = f"/sys/class/block/{dev_name}/device/serial"
+        if os.path.exists(sys_path):
+            try:
+                with open(sys_path, "r") as f:
+                    serial = f.read().strip()
+                    if serial:
+                        return serial
+            except Exception:
+                pass
+                
+        # Método 2: Usar udevadm (respaldo si sysfs falla)
+        try:
+            out = subprocess.check_output(
+                ["udevadm", "info", "--query=property", f"--name={base_dev}"], 
+                text=True, stderr=subprocess.DEVNULL
+            )
+            for line in out.splitlines():
+                if line.startswith("ID_SERIAL_SHORT="):
+                    return line.split("=")[1].strip()
+        except Exception:
+            pass
+            
+        return None
+
+    def _prepare_modern_ipod(self, mount_path):
+        """Crea el archivo SysInfo para habilitar la escritura en iPod Video/Classic."""
+        sysinfo_path = os.path.join(mount_path, "iPod_Control", "Device", "SysInfo")
+        
+        # Si ya existe, no hacemos nada (así no ensuciamos el status_label)
+        if os.path.exists(sysinfo_path):
+            return True
+            
+        fw_id = self._get_ipod_firewire_id(mount_path)
+        
+        if not fw_id:
+            # Silencioso, solo un log en consola por si acaso
+            print("[ipod] No se pudo obtener el Firewire ID. Puede que este iPod no lo necesite o falle la escritura.")
+            return False
+            
+        try:
+            os.makedirs(os.path.dirname(sysinfo_path), exist_ok=True)
+            with open(sysinfo_path, "w") as f:
+                f.write(f"FirewireGuid: 0x{fw_id}\n")
+            print(f"[ipod] SysInfo creado con éxito para {mount_path}")
+            return True
+        except Exception as e:
+            print(f"[ipod] Error escribiendo SysInfo: {e}")
+            return False
+
     def on_show_ipod_content(self, btn):
         if self.ipod_data is None:
             self.status_label.set_text(_('No hay iPod conectado.'))
@@ -6921,7 +6981,6 @@ class PlaylistWindow(Gtk.Window):
             if mounts:
                 self._auto_load_ipod(mounts[0])
         return True
-
     def _auto_load_ipod(self, path):
         if self.ipod_read_running:
             return False
@@ -6931,6 +6990,11 @@ class PlaylistWindow(Gtk.Window):
         self.status_label.set_text(f"iPod detectado en {path}, leyendo…")
 
         def worker():
+            # 1. Preparar el iPod automáticamente (crear SysInfo si falta)
+            # Esto es seguro para todos los modelos: si ya existe, no hace nada.
+            self._prepare_modern_ipod(path)
+
+            # 2. Leer el iPod normalmente
             data, err = ipod.read_ipod(path)
             GLib.idle_add(self._on_ipod_read, path, data, err, True)
 
@@ -7836,35 +7900,39 @@ class PlaylistWindow(Gtk.Window):
                     text=_('No hay suficiente espacio en el iPod')
                 )
                 dialog_err.format_secondary_text(
-                    f"Necesitas copiar {needed_gb:.2f} GB, pero solo hay {free_gb:.2f} GB libres en el iPod.\n\n"
-                    f"Para poder sincronizar, puedes:\n"
-                    f"• Eliminar música del iPod.\n"
-                    f"• Usar 'Sincronización selectiva' para elegir solo algunos artistas, listas o podcasts."
+                    _f("Necesitas copiar {:.2f} GB, pero solo hay {:.2f} GB libres en el iPod.\n\n"
+                       "Para poder sincronizar, puedes:\n"
+                       "• Eliminar música del iPod.\n"
+                       "• Usar 'Sincronización selectiva' para elegir solo algunos artistas, listas o podcasts.",
+                       needed_gb, free_gb)
                 )
-                dialog_err.add_button("Entendido", Gtk.ResponseType.OK)
+                dialog_err.add_button(_("Entendido"), Gtk.ResponseType.OK)
                 dialog_err.run()
                 dialog_err.destroy()
                 return
 
-
-
             # 6. Mostrar resumen exacto y desglosado
             dialog = Gtk.Dialog(title=_('Sincronización con iPod'), transient_for=self, modal=True)
             dialog.set_default_size(550, -1)
-            dialog.add_buttons("Cancelar", Gtk.ResponseType.CANCEL, "Sincronizar Ahora", Gtk.ResponseType.OK)
+            dialog.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL, _("Sincronizar Ahora"), Gtk.ResponseType.OK)
             area = dialog.get_content_area()
             area.set_spacing(10); area.set_border_width(16)
             
             lbl = Gtk.Label()
             lbl.set_markup(
-                f"<b>--- MÚSICA ---</b>\n"
-                f"PC: {len(local_tracks)} pistas | iPod: {len(ipod_tracks_music)} pistas\n"
-                f"A copiar: {len(new_unmatched_pc)} | A eliminar: {len(to_delete_tracks) - len([t for t in to_delete_tracks if int(t.get('mediatype',0)) & 0x04])}\n\n"
-                f"<b>--- PODCASTS ---</b>\n"
-                f"PC (descargados): {len(local_pods)} | iPod: {len(ipod_pods)}\n"
-                f"A copiar/actualizar: {len(pods_to_copy) + len(pods_to_update)} | A eliminar: {len([t for t in to_delete_tracks if int(t.get('mediatype',0)) & 0x04])}\n\n"
-                f"Estadísticas actualizadas en el PC: {stats_updated}\n\n"
-                f"Espacio necesario: {needed_gb:.2f} GB | Espacio libre: {free_gb:.2f} GB"
+                _f("<b>--- MÚSICA ---</b>\n"
+                   "PC: {} pistas | iPod: {} pistas\n"
+                   "A copiar: {} | A eliminar: {}\n\n"
+                   "<b>--- PODCASTS ---</b>\n"
+                   "PC (descargados): {} | iPod: {}\n"
+                   "A copiar/actualizar: {} | A eliminar: {}\n\n"
+                   "Estadísticas actualizadas en el PC: {}\n\n"
+                   "Espacio necesario: {:.2f} GB | Espacio libre: {:.2f} GB",
+                   len(local_tracks), len(ipod_tracks_music),
+                   len(new_unmatched_pc), len(to_delete_tracks) - len([t for t in to_delete_tracks if int(t.get('mediatype',0)) & 0x04]),
+                   len(local_pods), len(ipod_pods),
+                   len(pods_to_copy) + len(pods_to_update), len([t for t in to_delete_tracks if int(t.get('mediatype',0)) & 0x04]),
+                   stats_updated, needed_gb, free_gb)
             )
             lbl.set_halign(Gtk.Align.START)
             lbl.set_line_wrap(True)
@@ -7872,11 +7940,11 @@ class PlaylistWindow(Gtk.Window):
 
             # Desplegable para ver exactamente qué se va a borrar
             if to_delete_tracks:
-                expander = Gtk.Expander(label=f"Ver las {len(to_delete_tracks)} pistas que se eliminarán del iPod")
+                expander = Gtk.Expander(label=_f("Ver las {} pistas que se eliminarán del iPod", len(to_delete_tracks)))
                 box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
                 box.set_border_width(6)
                 for t in to_delete_tracks:
-                    tipo = "[Podcast]" if int(t.get("mediatype", 0)) & 0x04 else "[Música]"
+                    tipo = _("[Podcast]") if int(t.get("mediatype", 0)) & 0x04 else _("[Música]")
                     lbl_t = Gtk.Label(label=f"  {tipo} {t.get('artist', '?')} — {t.get('title', '?')}", xalign=0)
                     lbl_t.set_ellipsize(Pango.EllipsizeMode.END)
                     box.pack_start(lbl_t, False, False, 0)
@@ -7980,7 +8048,7 @@ class PlaylistWindow(Gtk.Window):
                     try: os.sync()
                     except: pass
                         
-                GLib.idle_add(self.status_label.set_text, "Sincronización completada. Releyendo iPod…")
+                GLib.idle_add(self.status_label.set_text, _("Sincronización completada. Releyendo iPod…"))
                 data, rerr = ipod.read_ipod(self.ipod_mount)
                 if not rerr:
                     GLib.idle_add(self._on_ipod_read, self.ipod_mount, data, None)
@@ -8215,14 +8283,15 @@ class PlaylistWindow(Gtk.Window):
             transient_for=self, modal=True,
             message_type=Gtk.MessageType.QUESTION,
             buttons=Gtk.ButtonsType.YES_NO,
-            text=f"Enviar «{podcast_title}» al iPod",
+            text=_f("Enviar «{}» al iPod", podcast_title),
         )
         dlg.format_secondary_text(
-            f"Episodios descargados: {n_new}\n"
-            f"Se eliminarán del iPod: {n_delete} pista(s) existente(s)\n"
-            f"Se copiarán de nuevo: {n_new} episodio(s)\n\n"
-            f"Se ordenarán de más antiguo a más nuevo por fecha real.\n"
-            f"¿Continuar?"
+            _f("Episodios descargados: {}\n"
+               "Se eliminarán del iPod: {} pista(s) existente(s)\n"
+               "Se copiarán de nuevo: {} episodio(s)\n\n"
+               "Se ordenarán de más antiguo a más nuevo por fecha real.\n"
+               "¿Continuar?",
+               n_new, n_delete, n_new)
         )
         dlg.set_default_response(Gtk.ResponseType.YES)
         ok = dlg.run() == Gtk.ResponseType.YES
@@ -8235,7 +8304,7 @@ class PlaylistWindow(Gtk.Window):
             return
 
         self.episodes_status.set_text(_('Enviando podcast al iPod…'))
-        self.status_label.set_text(f"Enviando «{podcast_title}» al iPod. Por favor, espera…")
+        self.status_label.set_text(_f("Enviando «{}» al iPod. Por favor, espera…", podcast_title))
 
         def worker():
             try:
@@ -8260,7 +8329,7 @@ class PlaylistWindow(Gtk.Window):
                     if err:
                         GLib.idle_add(
                             self.episodes_status.set_text,
-                            f"Error eliminando pistas antiguas: {err[:150]}")
+                            _f("Error eliminando pistas antiguas: {}", err[:150]))
                         return
                     try:
                         os.sync()
@@ -8294,7 +8363,7 @@ class PlaylistWindow(Gtk.Window):
                     if cerr:
                         GLib.idle_add(
                             self.episodes_status.set_text,
-                            f"Error Sincronizando: {cerr[:1500]}")
+                            _f("Error Sincronizando: {}", cerr[:1500]))
                         return
                     try:
                         os.sync()
@@ -8306,17 +8375,17 @@ class PlaylistWindow(Gtk.Window):
                 if rerr:
                     GLib.idle_add(
                         self.episodes_status.set_text,
-                        f"Sincronizado, pero falló releer: {rerr[:100]}")
+                        _f("Sincronizado, pero falló releer: {}", rerr[:100]))
                     return
                 GLib.idle_add(self._on_ipod_read,
                               self.ipod_mount, data, None)
                 GLib.idle_add(
                     self.episodes_status.set_text,
-                    f"«{podcast_title}» sincronizado al iPod")
+                    _f("«{}» sincronizado al iPod", podcast_title))
             except Exception as e:
                 GLib.idle_add(
                     self.episodes_status.set_text,
-                    f"Error inesperado: {e}")
+                    _f("Error inesperado: {}", e))
 
         threading.Thread(target=worker, daemon=True).start()
 

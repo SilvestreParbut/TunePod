@@ -38,7 +38,7 @@ import ipod
 import ipod_write
 import ipod_sync
 import ipod_copy
-APP_VERSION = "1.0.8"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
+APP_VERSION = "1.1.0"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
 Gst.init(None)
 try:
     Notify.init("TunePod")
@@ -1109,7 +1109,7 @@ class PlaylistWindow(Gtk.Window):
         """Muestra la ventana Acerca de."""
         dialog = Gtk.AboutDialog(transient_for=self, modal=True)
         dialog.set_program_name("TunePod")
-        dialog.set_version("1.0.8") # <-- Puedes cambiar esto con cada release
+        dialog.set_version("1.1.0") # <-- Puedes cambiar esto con cada release
         dialog.set_comments(_("Reproductor de música y gestor de iPod para Linux"))
         dialog.set_license_type(Gtk.License.GPL_3_0)
         dialog.set_website("https://github.com/SilvestreParbut/TunePod")
@@ -6524,6 +6524,66 @@ class PlaylistWindow(Gtk.Window):
             pass
         return None
 
+    def _get_ipod_firewire_id(self, mount_path):
+        """Obtiene el número de serie (Firewire ID) del iPod desde el sistema."""
+        block = self._block_device_for_mount(mount_path)
+        if not block:
+            return None
+        
+        import re
+        base_dev = re.sub(r'\d+$', '', block)
+        
+        # Método 1: Leer de sysfs (el más limpio y rápido)
+        dev_name = os.path.basename(base_dev)
+        sys_path = f"/sys/class/block/{dev_name}/device/serial"
+        if os.path.exists(sys_path):
+            try:
+                with open(sys_path, "r") as f:
+                    serial = f.read().strip()
+                    if serial:
+                        return serial
+            except Exception:
+                pass
+                
+        # Método 2: Usar udevadm (respaldo si sysfs falla)
+        try:
+            out = subprocess.check_output(
+                ["udevadm", "info", "--query=property", f"--name={base_dev}"], 
+                text=True, stderr=subprocess.DEVNULL
+            )
+            for line in out.splitlines():
+                if line.startswith("ID_SERIAL_SHORT="):
+                    return line.split("=")[1].strip()
+        except Exception:
+            pass
+            
+        return None
+
+    def _prepare_modern_ipod(self, mount_path):
+        """Crea el archivo SysInfo para habilitar la escritura en iPod Video/Classic."""
+        sysinfo_path = os.path.join(mount_path, "iPod_Control", "Device", "SysInfo")
+        
+        # Si ya existe, no hacemos nada (así no ensuciamos el status_label)
+        if os.path.exists(sysinfo_path):
+            return True
+            
+        fw_id = self._get_ipod_firewire_id(mount_path)
+        
+        if not fw_id:
+            # Silencioso, solo un log en consola por si acaso
+            print("[ipod] No se pudo obtener el Firewire ID. Puede que este iPod no lo necesite o falle la escritura.")
+            return False
+            
+        try:
+            os.makedirs(os.path.dirname(sysinfo_path), exist_ok=True)
+            with open(sysinfo_path, "w") as f:
+                f.write(f"FirewireGuid: 0x{fw_id}\n")
+            print(f"[ipod] SysInfo creado con éxito para {mount_path}")
+            return True
+        except Exception as e:
+            print(f"[ipod] Error escribiendo SysInfo: {e}")
+            return False
+
     def on_show_ipod_content(self, btn):
         if self.ipod_data is None:
             self.status_label.set_text(_('No hay iPod conectado.'))
@@ -6921,7 +6981,6 @@ class PlaylistWindow(Gtk.Window):
             if mounts:
                 self._auto_load_ipod(mounts[0])
         return True
-
     def _auto_load_ipod(self, path):
         if self.ipod_read_running:
             return False
@@ -6931,6 +6990,11 @@ class PlaylistWindow(Gtk.Window):
         self.status_label.set_text(f"iPod detectado en {path}, leyendo…")
 
         def worker():
+            # 1. Preparar el iPod automáticamente (crear SysInfo si falta)
+            # Esto es seguro para todos los modelos: si ya existe, no hace nada.
+            self._prepare_modern_ipod(path)
+
+            # 2. Leer el iPod normalmente
             data, err = ipod.read_ipod(path)
             GLib.idle_add(self._on_ipod_read, path, data, err, True)
 
