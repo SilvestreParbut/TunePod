@@ -38,7 +38,7 @@ import ipod
 import ipod_write
 import ipod_sync
 import ipod_copy
-APP_VERSION = "1.1.0"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
+APP_VERSION = "1.0.9"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
 Gst.init(None)
 try:
     Notify.init("TunePod")
@@ -1109,7 +1109,7 @@ class PlaylistWindow(Gtk.Window):
         """Muestra la ventana Acerca de."""
         dialog = Gtk.AboutDialog(transient_for=self, modal=True)
         dialog.set_program_name("TunePod")
-        dialog.set_version("1.1.0") # <-- Puedes cambiar esto con cada release
+        dialog.set_version("1.0.9") # <-- Puedes cambiar esto con cada release
         dialog.set_comments(_("Reproductor de música y gestor de iPod para Linux"))
         dialog.set_license_type(Gtk.License.GPL_3_0)
         dialog.set_website("https://github.com/SilvestreParbut/TunePod")
@@ -6379,7 +6379,12 @@ class PlaylistWindow(Gtk.Window):
             # Intentar detectar modelo automáticamente si está montado
             gen_str = self.ipod_data.get("generation", "unknown") if self.ipod_data else "unknown"
             gen_lower = gen_str.lower()
-            if "4th" in gen_lower or "fourth" in gen_lower: model_id = "4g"
+            if "classic" in gen_lower:
+                if "3" in gen_lower: model_id = "7g" # 7ª Gen (Classic 160GB 2009)
+                elif "2" in gen_lower: model_id = "6g" # 6ª Gen (Classic 160GB 2007)
+                else: model_id = "6g" # Por defecto
+            elif "5th" in gen_lower or "video" in gen_lower: model_id = "5g"
+            elif "4th" in gen_lower or "fourth" in gen_lower: model_id = "4g"
             elif "mini" in gen_lower and ("2" in gen_lower or "second" in gen_lower): model_id = "mini2"
             elif "mini" in gen_lower: model_id = "mini1"
             elif "3rd" in gen_lower: model_id = "3g"

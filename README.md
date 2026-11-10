@@ -19,7 +19,9 @@ for flash modded iPods, conect ALWAYS in disk mode
 Currently, TunePod offers theoretical support for the 1st, 2nd, 3rd, 4th, Photo, Mini 1, and Mini 2 models.
 It has been physically tested for synchronization and firmware restoration on:
 
--iPod 4th gen: usb and firewire
+-iPod 3rd gen: (Requires a computer with a FireWire 400 port, or a FireWire 800-to-400 adapter, to complete the restoration. The FireWire charger cannot be used to start up the iPod after a restore; only a direct FireWire connection to the PC works.)
+
+-iPod 4th gen: (Requires a FireWire charger if the computer has low-power USB ports.)
 
 ## Podcast
 
