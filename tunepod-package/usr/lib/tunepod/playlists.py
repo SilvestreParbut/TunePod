@@ -5,6 +5,7 @@ import uuid
 import gi
 gi.require_version("GLib", "2.0")
 from gi.repository import GLib
+from translations import _, _f
 
 PLAYLISTS_DIR = os.path.expanduser("~/.local/share/tunepod")
 PLAYLISTS_FILE = os.path.join(PLAYLISTS_DIR, "playlists.json")
@@ -103,9 +104,9 @@ def import_playlist(path):
         elif ext in (".m3u", ".m3u8"):
             title, uris = parse_m3u(path)
         else:
-            return None, None, f"Formato no soportado: {ext}"
+            return None, None, _f("Formato no soportado: {}", ext)
     except Exception as e:
-        return None, None, f"Error leyendo {os.path.basename(path)}: {e}"
+        return None, None, _f("Error leyendo {}: {}", os.path.basename(path), e)
     if not title:
         title = os.path.splitext(os.path.basename(path))[0]
     return title, uris, None
@@ -114,12 +115,12 @@ def import_playlist(path):
 # ---------- Evaluación de smart playlists ----------
 
 SMART_FIELDS = {
-    "rating":       {"label": "Rating",            "type": "int",      "col": 7},
-    "play_count":   {"label": "Reproducciones",    "type": "int",      "col": 8},
-    "last_played":  {"label": "Última vez",        "type": "date",     "col": 9},
-    "artist":       {"label": "Artista",           "type": "text",     "col": 1},
-    "genre":        {"label": "Género",            "type": "text",     "col": 12},
-    "year":         {"label": "Año",               "type": "int",      "col": 11},
+    "rating":       {"label": _("Rating"),            "type": "int",      "col": 7},
+    "play_count":   {"label": _("Reproducciones"),    "type": "int",      "col": 8},
+    "last_played":  {"label": _("Última vez"),        "type": "date",     "col": 9},
+    "artist":       {"label": _("Artista"),           "type": "text",     "col": 1},
+    "genre":        {"label": _("Género"),            "type": "text",     "col": 12},
+    "year":         {"label": _("Año"),               "type": "int",      "col": 11},
 }
 
 SMART_OPERATORS_INT = [
@@ -131,17 +132,17 @@ SMART_OPERATORS_INT = [
     ("ge", "≥"),
 ]
 SMART_OPERATORS_TEXT = [
-    ("contains", "contiene"),
-    ("not_contains", "no contiene"),
-    ("eq", "es igual a"),
-    ("ne", "no es"),
-    ("startswith", "empieza por"),
+    ("contains", _("contiene")),
+    ("not_contains", _("no contiene")),
+    ("eq", _("es igual a")),
+    ("ne", _("no es")),
+    ("startswith", _("empieza por")),
 ]
 SMART_OPERATORS_DATE = [
-    ("days_ago_lt", "hace menos de N días"),
-    ("days_ago_gt", "hace más de N días"),
-    ("is_empty", "no tiene fecha"),
-    ("not_empty", "tiene fecha"),
+    ("days_ago_lt", _("hace menos de N días")),
+    ("days_ago_gt", _("hace más de N días")),
+    ("is_empty", _("no tiene fecha")),
+    ("not_empty", _("tiene fecha")),
 ]
 
 

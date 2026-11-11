@@ -18,6 +18,7 @@ import urllib.error
 import gi
 gi.require_version("GLib", "2.0")
 from gi.repository import GLib
+from translations import _, _f
 
 CACHE_DIR = os.path.expanduser("~/.cache/tunepod/covers")
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -42,7 +43,7 @@ USER_AGENT = "TunePod/0.1"
 
 def search_album_covers_itunes(artist, album, limit=10):
     if not artist or not album:
-        return [], "Faltan artista o álbum."
+        return [], _("Faltan artista o álbum.")
     term = f"{artist} {album}".strip()
     params = {
         "term": term,
@@ -57,9 +58,9 @@ def search_album_covers_itunes(artist, album, limit=10):
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode("utf-8"))
     except urllib.error.URLError as e:
-        return [], f"iTunes sin conexión: {e.reason}"
+        return [], _f("iTunes sin conexión: {}", e.reason)
     except Exception as e:
-        return [], f"iTunes error: {e}"
+        return [], _f("iTunes error: {}", e)
 
     results = []
     for r in data.get("results", []):
@@ -81,7 +82,7 @@ def search_album_covers_itunes(artist, album, limit=10):
 
 def search_album_covers_deezer(artist, album, limit=10):
     if not artist or not album:
-        return [], "Faltan artista o álbum."
+        return [], _("Faltan artista o álbum.")
     q = f"{artist} {album}".strip()
     params = {"q": q, "limit": str(limit)}
     url = DEEZER_SEARCH + "?" + urllib.parse.urlencode(params)
@@ -91,9 +92,9 @@ def search_album_covers_deezer(artist, album, limit=10):
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode("utf-8"))
     except urllib.error.URLError as e:
-        return [], f"Deezer sin conexión: {e.reason}"
+        return [], _f("Deezer sin conexión: {}", e.reason)
     except Exception as e:
-        return [], f"Deezer error: {e}"
+        return [], _f("Deezer error: {}", e)
 
     results = []
     for r in data.get("data", []):
@@ -142,7 +143,7 @@ def download_cover(artwork_url, cache_key, timeout=15, overwrite=False):
     que player.py para que la caché se lea correctamente después.
     Si overwrite=True, sobreescribe aunque ya exista una carátula."""
     if not artwork_url:
-        return None, "URL vacía."
+        return None, _("URL vacía.")
 
     cache_path = _cache_path_for_uri(cache_key)
 
@@ -158,9 +159,9 @@ def download_cover(artwork_url, cache_key, timeout=15, overwrite=False):
             f.write(data)
         return cache_path, None
     except urllib.error.URLError as e:
-        return None, f"Sin conexión: {e.reason}"
+        return None, _f("Sin conexión: {}", e.reason)
     except Exception as e:
-        return None, f"Error descargando: {e}"
+        return None, _f("Error descargando: {}", e)
 
 
 def copy_local_cover(source_path, cache_key, overwrite=False):
@@ -168,7 +169,7 @@ def copy_local_cover(source_path, cache_key, overwrite=False):
     cache_key puede ser una URI file:// o una ruta.
     Si overwrite=True, sobreescribe aunque ya exista una carátula."""
     if not os.path.exists(source_path):
-        return None, "El archivo no existe."
+        return None, _("El archivo no existe.")
 
     cache_path = _cache_path_for_uri(cache_key)
 
@@ -182,4 +183,4 @@ def copy_local_cover(source_path, cache_key, overwrite=False):
             f.write(data)
         return cache_path, None
     except Exception as e:
-        return None, f"Error copiando: {e}"
+        return None, _f("Error copiando: {}", e)

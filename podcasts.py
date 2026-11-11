@@ -8,6 +8,7 @@ import urllib.parse
 import urllib.error
 import xml.etree.ElementTree as ET
 from email.utils import parsedate_to_datetime
+from translations import _, _f
 
 SUBS_DIR = os.path.expanduser("~/.local/share/tunepod")
 SUBS_FILE = os.path.join(SUBS_DIR, "podcasts.json")
@@ -35,7 +36,7 @@ def search_itunes(query, limit=30):
         raw = _http_get(url, timeout=15)
         data = json.loads(raw)
     except Exception as e:
-        return [], f"Error consultando iTunes: {e}"
+        return [], _f("Error consultando iTunes: {}", e)
     results = []
     for r in data.get("results", []):
         feed = r.get("feedUrl")
@@ -129,17 +130,17 @@ def fetch_feed(feed_url):
         raw = _http_get(feed_url, timeout=25, want_bytes=True)
         root = ET.fromstring(raw)
     except urllib.error.URLError as e:
-        return None, f"Sin conexión al feed: {e.reason}"
+        return None, _f("Sin conexión al feed: {}", e.reason)
     except ET.ParseError as e:
-        return None, f"XML mal formado: {e}"
+        return None, _f("XML mal formado: {}", e)
     except Exception as e:
-        return None, f"Error: {e}"
+        return None, _f("Error: {}", e)
 
     channel = root.find("channel")
     if channel is None:
-        return None, "El feed no es RSS 2.0 (no tiene <channel>)"
+        return None, _("El feed no es RSS 2.0 (no tiene <channel>)")
 
-    title = _text(channel, "title") or "(Sin título)"
+    title = _text(channel, "title") or _("(Sin título)")
     author = _text(channel, "itunes:author") or title
     desc = _text(channel, "description")[:400]
 
@@ -159,7 +160,7 @@ def fetch_feed(feed_url):
         if not audio_url:
             continue
         episodes.append({
-            "title": _text(item, "title") or "(Sin título)",
+            "title": _text(item, "title") or _("(Sin título)"),
             "pub_date": _fmt_date(_text(item, "pubDate")),
             "duration": _fmt_duration(_text(item, "itunes:duration")),
             "guid": _text(item, "guid"),
@@ -239,7 +240,7 @@ def download_episode(url, base_dir, episode_title, on_progress=None,
                 with open(partial, "wb") as f:
                     while True:
                         if cancel_event is not None and cancel_event.is_set():
-                            raise RuntimeError("Descarga cancelada")
+                            raise RuntimeError(_("Descarga cancelada"))
                         chunk = resp.read(chunk_size)
                         if not chunk:
                             break
@@ -257,6 +258,6 @@ def download_episode(url, base_dir, episode_title, on_progress=None,
                 raise
             return dest, None
     except urllib.error.URLError as e:
-        return None, f"Sin conexión: {e.reason}"
+        return None, _f("Sin conexión: {}", e.reason)
     except Exception as e:
-        return None, f"Error: {e}"
+        return None, _f("Error: {}", e)
