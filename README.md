@@ -17,7 +17,8 @@ for flash modded iPods, conect ALWAYS in disk mode
 ## Supported and tested iPods
 
 Currently, TunePod offers theoretical support for the 1st, 2nd, 3rd, 4th, Photo, Mini 1, and Mini 2 models.
-It has been physically tested for synchronization and firmware restoration on:
+
+It has been physically tested for synchronization and firmware restoration on the following iPod models:
 
 -iPod 3rd gen: (Requires a computer with a FireWire 400 port, or a FireWire 800-to-400 adapter, to complete the restoration. The FireWire charger cannot be used to start up the iPod after a restore; only a direct FireWire connection to the PC works.)
 
@@ -26,6 +27,7 @@ It has been physically tested for synchronization and firmware restoration on:
 ## Podcast
 
 The iPod’s firmware sorts podcasts from newest to oldest and plays only one at a time, which is inconvenient for listening to audio series. To address this, TunePod sorts podcasts in the iPod menu from oldest to newest; it also creates a playlist for each podcast —updated with every synchronization— that arranges episodes from oldest to newest and allows for continuous, sequential playback.
+For iPod models that never included firmware support for podcasts—such as the 1st, 2nd, and 3rd generations—global synchronization does not transfer podcasts, as there is no dedicated podcast section. To address this, Tunepod employs selective synchronization, which transfers podcasts as playlists.
 
 ## Run from Python script
 
