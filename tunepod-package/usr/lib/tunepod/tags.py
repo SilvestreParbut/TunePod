@@ -5,7 +5,6 @@ from mutagen.id3 import ID3, TIT2, TPE1, TALB, TPE2, TCON, TRCK, TPOS, TDRC
 from mutagen.flac import FLAC
 from mutagen.mp4 import MP4
 from mutagen.oggvorbis import OggVorbis
-from translations import _, _f
 
 
 def write_tags(filepath, metadata):
@@ -14,7 +13,7 @@ def write_tags(filepath, metadata):
     genre, track_nr, cd_nr, year.
     Devuelve (ok, error)."""
     if not os.path.exists(filepath):
-        return False, _("El archivo no existe.")
+        return False, "El archivo no existe."
 
     ext = os.path.splitext(filepath)[1].lower()
     try:
@@ -27,10 +26,10 @@ def write_tags(filepath, metadata):
         elif ext == ".ogg":
             _write_ogg(filepath, metadata)
         else:
-            return False, _f("Formato no soportado para escribir tags: {}", ext)
+            return False, f"Formato no soportado para escribir tags: {ext}"
         return True, None
     except Exception as e:
-        return False, _f("Error escribiendo tags: {}", e)
+        return False, f"Error escribiendo tags: {e}"
 
 
 def _write_mp3(filepath, m):

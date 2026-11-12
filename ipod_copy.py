@@ -12,7 +12,6 @@ import gi
 gi.require_version("Gst", "1.0")
 gi.require_version("GstPbutils", "1.0")
 from gi.repository import Gst, GstPbutils, GLib
-from translations import _, _f
 
 Gst.init(None)
 
@@ -32,7 +31,7 @@ def _discoverer():
 
 def ensure_helper_compiled():
     if not HELPER_SRC.exists():
-        return False, _f("Falta el archivo {}", HELPER_SRC)
+        return False, f"Falta el archivo {HELPER_SRC}"
     if HELPER_BIN.exists():
         try:
             if HELPER_BIN.stat().st_mtime >= HELPER_SRC.stat().st_mtime:
@@ -58,12 +57,12 @@ def ensure_helper_compiled():
             cmd, capture_output=True, text=True, timeout=90,
         )
     except FileNotFoundError:
-        return False, _("gcc o pkg-config no encontrados.")
+        return False, "gcc o pkg-config no encontrados."
     except Exception as e:
-        return False, _f("Error ejecutando pkg-config/gcc: {}", e)
+        return False, f"Error ejecutando pkg-config/gcc: {e}"
 
     if r.returncode != 0:
-        return False, _f("Error compilando:\n{}", r.stderr)
+        return False, f"Error compilando:\n{r.stderr}"
         
     return True, None
 
@@ -204,8 +203,8 @@ def copy_tracks(mount, tracks, dry_run=False, progress_callback=None):
         
         if process.returncode != 0:
             return False, "".join(stdout_lines), (
-                _f("Helper error (código {}):\nstdout: {}\nstderr: {}",
-                   process.returncode, "".join(stdout_lines), stderr_lines))
+                f"Helper error (código {process.returncode}):\n"
+                f"stdout: {''.join(stdout_lines)}\nstderr: {stderr_lines}")
         return True, "".join(stdout_lines), None
     finally:
         try:

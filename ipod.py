@@ -3,7 +3,6 @@ import os
 import json
 import subprocess
 from pathlib import Path
-from translations import _, _f
 
 HERE = Path(__file__).resolve().parent
 HELPER_SRC = HERE / "ipod_read.c"
@@ -13,7 +12,7 @@ HELPER_BIN = Path(os.path.expanduser("~/.cache/tunepod/bin/ipod_read"))
 def ensure_helper_compiled():
     """Compila el helper si hace falta. Devuelve (ok, error)."""
     if not HELPER_SRC.exists():
-        return False, _f("Falta el archivo {}", HELPER_SRC)
+        return False, f"Falta el archivo {HELPER_SRC}"
     if HELPER_BIN.exists():
         try:
             if HELPER_BIN.stat().st_mtime >= HELPER_SRC.stat().st_mtime:
@@ -32,11 +31,11 @@ def ensure_helper_compiled():
             capture_output=True, text=True, timeout=90,
         )
     except FileNotFoundError:
-        return False, _("gcc no encontrado. Instala build-essential.")
+        return False, "gcc no encontrado. Instala build-essential."
     except Exception as e:
-        return False, _f("Error ejecutando gcc: {}", e)
+        return False, f"Error ejecutando gcc: {e}"
     if r.returncode != 0:
-        return False, _f("Error compilando ipod_read.c:\n{}", r.stderr)
+        return False, f"Error compilando ipod_read.c:\n{r.stderr}"
     return True, None
 
 
@@ -118,18 +117,20 @@ def read_ipod(mount_point):
             capture_output=True, text=True, timeout=120,
         )
     except subprocess.TimeoutExpired:
-        return None, _("Timeout leyendo el iPod (>120s)")
+        return None, "Timeout leyendo el iPod (>120s)"
     except Exception as e:
-        return None, _f("Error ejecutando helper: {}", e)
+        return None, f"Error ejecutando helper: {e}"
     if r.returncode != 0:
         return None, (
-            _f("Helper devolvió error (código {}):\n{}", r.returncode, r.stderr.strip())
+            f"Helper devolvió error (código {r.returncode}):\n"
+            f"{r.stderr.strip()}"
         )
     try:
         return json.loads(r.stdout), None
     except json.JSONDecodeError as e:
         return None, (
-            _f("Salida JSON inválida: {}\nPrimeros 200 caracteres: {}", e, r.stdout[:200])
+            f"Salida JSON inválida: {e}\n"
+            f"Primeros 200 caracteres: {r.stdout[:200]}"
         )
 
 
