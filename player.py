@@ -48,7 +48,7 @@ GLib.set_prgname("tunepod")
 GLib.set_application_name("TunePod")
 
 AUDIO_EXT = (".mp3", ".m4a", ".flac", ".ogg", ".wav")
-LYRICS_DEFAULT = "Reproduce una canción para ver su letra aquí."
+LYRICS_DEFAULT = _("Reproduce una canción para ver su letra aquí.")
 TRACK_NUM_RE = re.compile(r"^(\d{1,3})\s*[-._\s]")
 PODCAST_DIR = os.path.expanduser("~/Podcasts")
 SOCKET_PATH = "/tmp/tunepod.sock"
@@ -3008,8 +3008,8 @@ class PlaylistWindow(Gtk.Window):
             title=_('Nueva lista de reproducción'),
             transient_for=self, modal=True,
         )
-        dialog.add_buttons("Cancelar", Gtk.ResponseType.CANCEL,
-                           "Crear", Gtk.ResponseType.OK)
+        dialog.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL,
+                           _("Crear"), Gtk.ResponseType.OK)
         box = dialog.get_content_area()
         box.set_spacing(8)
         box.set_border_width(10)
@@ -4269,14 +4269,16 @@ class PlaylistWindow(Gtk.Window):
             title=_('Añadir a lista'),
             transient_for=self, modal=True,
         )
-        dialog.add_buttons("Cancelar", Gtk.ResponseType.CANCEL,
-                           "Añadir", Gtk.ResponseType.OK)
+        # AÑADIR _() A LOS BOTONES
+        dialog.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL,
+                           _("Añadir"), Gtk.ResponseType.OK)
         dialog.set_default_size(400, -1)
         box = dialog.get_content_area()
         box.set_spacing(8)
         box.set_border_width(10)
 
-        lbl = Gtk.Label(label=f"Canción: {title}" if title else "Canción actual")
+        # TRADUCIR LA ETIQUETA
+        lbl = Gtk.Label(label=_f("Canción: {}", title) if title else _("Canción actual"))
         lbl.set_halign(Gtk.Align.START)
         lbl.set_ellipsize(Pango.EllipsizeMode.END)
         box.pack_start(lbl, False, False, 0)
@@ -4349,15 +4351,17 @@ class PlaylistWindow(Gtk.Window):
             title=_('Añadir a lista'),
             transient_for=self, modal=True,
         )
-        dialog.add_buttons("Cancelar", Gtk.ResponseType.CANCEL,
-                           "Añadir", Gtk.ResponseType.OK)
+        # AÑADIR _() A LOS BOTONES
+        dialog.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL,
+                           _("Añadir"), Gtk.ResponseType.OK)
         dialog.set_default_size(420, -1)
         box = dialog.get_content_area()
         box.set_spacing(8)
         box.set_border_width(10)
 
+        # TRADUCIR LA ETIQUETA
         label = Gtk.Label(
-            label=f"{len(uris)} canción(es) → ¿a qué lista?")
+            label=_f("{} canción(es) → ¿a qué lista?", len(uris)))
         label.set_halign(Gtk.Align.START)
         box.pack_start(label, False, False, 0)
 
@@ -4856,7 +4860,10 @@ class PlaylistWindow(Gtk.Window):
         if not artist or not title:
             buf.set_text(_('Esta pista no tiene artista o título; no se puede buscar la letra.'))
             return
-        buf.set_text(f"Buscando letra para {artist} — {title}…")
+        
+        # TRADUCIR EL MENSAJE DE BÚSQUEDA
+        buf.set_text(_f("Buscando letra para {} — {}…", artist, title))
+        
         def worker():
             text, err = get_lyrics(artist, title)
             GLib.idle_add(finish, text, err)
@@ -6394,7 +6401,7 @@ class PlaylistWindow(Gtk.Window):
         # Si no hay iPod montado (disco en blanco), mostrar ventana de selección manual
         if not block_device or not model_id:
             dialog = Gtk.Dialog(title=_('Restauración Manual de iPod'), transient_for=self, modal=True)
-            dialog.add_buttons("Cancelar", Gtk.ResponseType.CANCEL, "Continuar", Gtk.ResponseType.OK)
+            dialog.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL, _("Continuar"), Gtk.ResponseType.OK)
             box = dialog.get_content_area()
             box.set_spacing(10)
             box.set_border_width(15)

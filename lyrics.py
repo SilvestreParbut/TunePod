@@ -5,6 +5,7 @@ import hashlib
 import urllib.request
 import urllib.parse
 import urllib.error
+from translations import _, _f
 
 CACHE_DIR = os.path.expanduser("~/.cache/tunepod/lyrics")
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -14,7 +15,7 @@ def get_lyrics(artist, title):
     """Devuelve (texto, None) si hay letra, o (None, motivo) si no.
     Esta función es BLOQUEANTE. Llamarla siempre desde un hilo."""
     if not artist or not title:
-        return None, "Sin artista o título para buscar la letra."
+        return None, _("Sin artista o título para buscar la letra.")
 
     # 1. Caché
     key = hashlib.sha1(f"{artist}|{title}".encode("utf-8")).hexdigest()
@@ -39,7 +40,7 @@ def get_lyrics(artist, title):
             data = json.loads(resp.read().decode("utf-8"))
         text = (data.get("lyrics") or "").strip()
         if not text:
-            return None, "No se encontró letra."
+            return None, _("No se encontró letra.")
         # 3. Guardar caché
         try:
             with open(cache_file, "w", encoding="utf-8") as f:
@@ -49,9 +50,9 @@ def get_lyrics(artist, title):
         return text, None
     except urllib.error.HTTPError as e:
         if e.code == 404:
-            return None, "No se encontró letra."
-        return None, f"Error HTTP {e.code} al buscar la letra."
+            return None, _("No se encontró letra.")
+        return None, _f("Error HTTP {} al buscar la letra.", e.code)
     except urllib.error.URLError as e:
-        return None, f"Sin conexión: {e.reason}"
+        return None, _f("Sin conexión: {}", e.reason)
     except Exception as e:
-        return None, f"Error: {e}"
+        return None, _f("Error: {}", e)
