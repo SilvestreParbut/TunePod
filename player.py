@@ -48,7 +48,7 @@ GLib.set_prgname("tunepod")
 GLib.set_application_name("TunePod")
 
 AUDIO_EXT = (".mp3", ".m4a", ".flac", ".ogg", ".wav")
-LYRICS_DEFAULT = "Reproduce una canción para ver su letra aquí."
+LYRICS_DEFAULT = _("Reproduce una canción para ver su letra aquí.")
 TRACK_NUM_RE = re.compile(r"^(\d{1,3})\s*[-._\s]")
 PODCAST_DIR = os.path.expanduser("~/Podcasts")
 SOCKET_PATH = "/tmp/tunepod.sock"
@@ -158,7 +158,7 @@ class Mpris2Adapter(dbus.service.Object):
         
         self.metadata = dbus.Dictionary({
             "mpris:trackid": dbus.ObjectPath("/org/tunepod/track"),
-            "xesam:title": dbus.String("Ninguna canción"),
+            "xesam:title": dbus.String(_("Ninguna canción")),
             "xesam:artist": dbus.Array([dbus.String("")], signature="s"),
             "xesam:album": dbus.String("")
         }, signature="sv")
@@ -558,7 +558,7 @@ class PlaylistWindow(Gtk.Window):
 
         play_renderer = Gtk.CellRendererText()
         play_renderer.set_property("xalign", 0.5)
-        play_col = Gtk.TreeViewColumn("Repr.", play_renderer, text=VCOL_PLAY_COUNT)
+        play_col = Gtk.TreeViewColumn(_("Repr."), play_renderer, text=VCOL_PLAY_COUNT)
         play_col.set_resizable(False)
         play_col.set_min_width(50)
         play_col.set_sort_column_id(VCOL_PLAY_COUNT)
@@ -566,7 +566,7 @@ class PlaylistWindow(Gtk.Window):
 
         dur_renderer = Gtk.CellRendererText()
         dur_renderer.set_property("xalign", 1.0)
-        dur_col = Gtk.TreeViewColumn("Dur.", dur_renderer, text=VCOL_DURATION)
+        dur_col = Gtk.TreeViewColumn(_("Dur."), dur_renderer, text=VCOL_DURATION)
         dur_col.set_resizable(False)
         dur_col.set_min_width(50)
         dur_col.set_sort_column_id(VCOL_DURATION)
@@ -589,7 +589,7 @@ class PlaylistWindow(Gtk.Window):
         self.artists_listbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
         self.artists_listbox.connect("row-activated", self.on_artist_row_activated)
         scroll_artists.add(self.artists_listbox)
-        self.artists_stack.add_titled(scroll_artists, "list", "Lista")
+        self.artists_stack.add_titled(scroll_artists, "list", _("Lista"))
         
         # 2.2 Detalle del artista (Discos)
         artist_detail_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -619,7 +619,7 @@ class PlaylistWindow(Gtk.Window):
         scroll_artist_albums.add(self.artist_albums_flowbox)
         artist_detail_box.pack_start(scroll_artist_albums, True, True, 0)
         
-        self.artists_stack.add_titled(artist_detail_box, "detail", "Discos")
+        self.artists_stack.add_titled(artist_detail_box, "detail", _("Discos"))
 
         # 3. Vista de Álbumes (Cuadrícula y Detalle)
         self.albums_inner_stack = Gtk.Stack()
@@ -634,7 +634,7 @@ class PlaylistWindow(Gtk.Window):
         self.album_flowbox.set_selection_mode(Gtk.SelectionMode.NONE)
         self.album_flowbox.connect("child-activated", self.on_album_activated)
         scroll_albums.add(self.album_flowbox)
-        self.albums_inner_stack.add_titled(scroll_albums, "grid", "Cuadrícula")
+        self.albums_inner_stack.add_titled(scroll_albums, "grid", _("Cuadrícula"))
 
         album_detail_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         album_detail_box.set_border_width(8)
@@ -677,7 +677,7 @@ class PlaylistWindow(Gtk.Window):
         scroll_tracks.add(self.album_tracks_view)
         album_detail_box.pack_start(scroll_tracks, True, True, 0)
         
-        self.albums_inner_stack.add_titled(album_detail_box, "detail", "Detalle")
+        self.albums_inner_stack.add_titled(album_detail_box, "detail", _("Detalle"))
 
         # 4. Pestaña central para el iPod
         self.ipod_stack_page = self._build_ipod_stack_page()
@@ -728,7 +728,7 @@ class PlaylistWindow(Gtk.Window):
         pl_toolbar.pack_start(new_pl_btn, True, True, 0)
 
         imp_pl_btn = Gtk.Button(label=_('Importar'))
-        imp_pl_btn.set_tooltip_text("Importar .pls, .m3u o .m3u8")
+        imp_pl_btn.set_tooltip_text(_("Importar .pls, .m3u o .m3u8"))
         imp_pl_btn.connect("clicked", self.on_import_playlist)
         pl_toolbar.pack_start(imp_pl_btn, True, True, 0)
 
@@ -1015,7 +1015,7 @@ class PlaylistWindow(Gtk.Window):
             transient_for=self,
             modal=True,
         )
-        dialog.add_buttons("Cancelar", Gtk.ResponseType.CANCEL)
+        dialog.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL)
         dialog.set_default_size(320, -1)
 
         box = dialog.get_content_area()
@@ -1190,7 +1190,7 @@ class PlaylistWindow(Gtk.Window):
                 with urllib.request.urlopen(req, timeout=10) as r:
                     data = json.loads(r.read().decode())
                 
-                latest_tag = data.get("tag_name", "Desconocida")
+                latest_tag = data.get("tag_name", _("Desconocida"))
                 html_url = data.get("html_url", "")
                 release_name = data.get("name", "")
                 
@@ -1305,7 +1305,7 @@ class PlaylistWindow(Gtk.Window):
         if moved:
             playlists_mod.save(self.playlists)
             self._apply_filters()
-            self.status_label.set_text(f"{moved} canción(es) movida(s) arriba")
+            self.status_label.set_text(_f("{} canción(es) movida(s) arriba", moved))
 
     def on_move_down(self, menu_item):
         if self.current_playlist_id is None:
@@ -1333,7 +1333,7 @@ class PlaylistWindow(Gtk.Window):
         if moved:
             playlists_mod.save(self.playlists)
             self._apply_filters()
-            self.status_label.set_text(f"{moved} canción(es) movida(s) abajo")
+            self.status_label.set_text(_f("{} canción(es) movida(s) abajo", moved))
 
     def _on_view_rows_reordered(self, model, path, it, new_order):
         """Se dispara cuando el usuario reordena filas con drag & drop."""
@@ -1353,7 +1353,7 @@ class PlaylistWindow(Gtk.Window):
             return
         pl["uris"] = new_uris
         playlists_mod.save(self.playlists)
-        self.status_label.set_text(f"Lista «{pl['name']}» reordenada")
+        self.status_label.set_text(_f("Lista «{}» reordenada", pl['name']))
 
     def _configure_reorder(self):
         """Modo playlist manual: solo drag & drop, sin sort por cabecera.
@@ -1397,7 +1397,7 @@ class PlaylistWindow(Gtk.Window):
                 
         n = len(self.play_queue)
         if n > 0:
-            self.queue_info_label.set_text(f"Cola: {n} canción(es)")
+            self.queue_info_label.set_text(_f("Cola: {} canción(es)", n))
             self.queue_clear_btn.set_sensitive(True)
         else:
             self.queue_info_label.set_text(_('La cola está vacía'))
@@ -1466,7 +1466,7 @@ class PlaylistWindow(Gtk.Window):
             self.play_queue.insert(0, uri)
         self._refresh_queue_view()
         self.status_label.set_text(
-            f"{len(uris)} canción(es) se reproducirán a continuación")
+            _f("{} canción(es) se reproducirán a continuación", len(uris)))
 
     def on_add_to_queue(self, menu_item):
         uris = self._get_selected_uris()
@@ -1477,7 +1477,7 @@ class PlaylistWindow(Gtk.Window):
             self.play_queue.append(uri)
         self._refresh_queue_view()
         self.status_label.set_text(
-            f"{len(uris)} canción(es) añadida(s) a la cola")
+            _f("{} canción(es) añadida(s) a la cola", len(uris)))
 
     def on_clear_queue(self, btn):
         self.play_queue = []
@@ -1519,7 +1519,7 @@ class PlaylistWindow(Gtk.Window):
                 self.play_queue.remove(uri)
                 removed += 1
         self._refresh_queue_view()
-        self.status_label.set_text(f"{removed} canción(es) quitada(s) de la cola")
+        self.status_label.set_text(_f("{} canción(es) quitada(s) de la cola", removed))
 
     # ---------- Rating ----------
 
@@ -1549,7 +1549,7 @@ class PlaylistWindow(Gtk.Window):
             it = self.view_store.iter_next(it)
         self._save_library()
         stars = "★" * rating + "☆" * (5 - rating) if rating > 0 else "Sin valorar"
-        self.status_label.set_text(f"Valoración: {stars}")
+        self.status_label.set_text(_f("Valoración: {}", stars))
 
     def on_rate_selected(self, menu_item, rating):
         stack_child = self.stack.get_visible_child_name()
@@ -1570,7 +1570,7 @@ class PlaylistWindow(Gtk.Window):
     def _update_shuffle_btn(self):
         self.shuffle_btn.set_image(Gtk.Image.new_from_icon_name("media-playlist-shuffle-symbolic", Gtk.IconSize.BUTTON))
         self.shuffle_btn.set_opacity(1.0 if self.shuffle_enabled else 0.4)
-        self.shuffle_btn.set_tooltip_text("Aleatorio: activado" if self.shuffle_enabled else "Aleatorio: desactivado")
+        self.shuffle_btn.set_tooltip_text(_("Aleatorio: activado") if self.shuffle_enabled else _("Aleatorio: desactivado"))
 
     def _update_repeat_btn(self):
         if self.repeat_mode == "one":
@@ -1594,7 +1594,7 @@ class PlaylistWindow(Gtk.Window):
         preferences.save(self.prefs)
         self._update_shuffle_btn()
         self.status_label.set_text(
-            "Shuffle activado" if self.shuffle_enabled else "Shuffle desactivado")
+            _("Shuffle activado") if self.shuffle_enabled else _("Shuffle desactivado"))
 
     def on_repeat_toggled(self, btn):
         idx = REPEAT_MODES.index(self.repeat_mode)
@@ -1602,9 +1602,9 @@ class PlaylistWindow(Gtk.Window):
         self.prefs["repeat"] = self.repeat_mode
         preferences.save(self.prefs)
         self._update_repeat_btn()
-        labels = {"off": "Repetir: desactivado",
-                  "all": "Repetir: toda la lista",
-                  "one": "Repetir: una canción"}
+        labels = {"off": _("Repetir: desactivado"),
+                  "all": _("Repetir: toda la lista"),
+                  "one": _("Repetir: una canción")}
         self.status_label.set_text(labels[self.repeat_mode])
 
     # ---------- Now Playing ----------
@@ -1762,7 +1762,7 @@ class PlaylistWindow(Gtk.Window):
         it = self.store.get_iter_first()
         while it is not None:
             if self.store.get_value(it, COL_URI) == self.current_uri:
-                artist_name = self.store.get_value(it, COL_ARTIST) or "(Sin artista)"
+                artist_name = self.store.get_value(it, COL_ARTIST) or _("(Sin artista)")
                 break
             it = self.store.iter_next(it)
         
@@ -1794,7 +1794,7 @@ class PlaylistWindow(Gtk.Window):
         self.albums_grid_dirty = True
         
         # Mensaje informativo en la barra inferior
-        self.status_label.set_text(f"Mostrando discos de: {artist_name}")
+        self.status_label.set_text(_f("Mostrando discos de: {}", artist_name))
 
     def on_np_album_clicked(self, widget, event):
         """Abre directamente el detalle del álbum actual (optimizado para ser instantáneo)."""
@@ -1808,8 +1808,8 @@ class PlaylistWindow(Gtk.Window):
         it = self.store.get_iter_first()
         while it is not None:
             if self.store.get_value(it, COL_URI) == self.current_uri:
-                album_name = self.store.get_value(it, COL_ALBUM) or "(Sin álbum)"
-                artist_name = self.store.get_value(it, COL_ARTIST) or "(Sin artista)"
+                album_name = self.store.get_value(it, COL_ALBUM) or _("(Sin álbum)")
+                artist_name = self.store.get_value(it, COL_ARTIST) or _("(Sin artista)")
                 break
             it = self.store.iter_next(it)
             
@@ -1838,7 +1838,7 @@ class PlaylistWindow(Gtk.Window):
         
         tracks = []
         for row in self.store:
-            if (row[COL_ALBUM] or "(Sin álbum)") == album_name and (row[COL_ARTIST] or "(Sin artista)") == artist_name:
+            if (row[COL_ALBUM] or _("(Sin álbum)")) == album_name and (row[COL_ARTIST] or _("(Sin artista)")) == artist_name:
                 tracks.append(row)
                 
         # Ordenar por pista
@@ -2393,10 +2393,10 @@ class PlaylistWindow(Gtk.Window):
             
             if playlists_mod.is_smart(pl):
                 icon_name = "starred-symbolic"
-                tooltip = "Lista inteligente (reglas automáticas)"
+                tooltip = _("Lista inteligente (reglas automáticas)")
             else:
                 icon_name = "view-list-symbolic"
-                tooltip = f"{len(pl.get('uris', []))} pistas"
+                tooltip = _f("{} pistas", len(pl.get('uris', [])))
                 
             img = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.MENU)
             hbox.pack_start(img, False, False, 0)
@@ -2535,7 +2535,7 @@ class PlaylistWindow(Gtk.Window):
             return
 
         self.status_label.set_text(
-            f"Buscando coincidencias en el iPod ({len(local_tracks)} canciones)…")
+            _f("Buscando coincidencias en el iPod ({} canciones)…", len(local_tracks)))
 
         def worker():
             ipod_tracks = self.ipod_data.get("tracks", [])
@@ -2568,19 +2568,19 @@ class PlaylistWindow(Gtk.Window):
         # Botones: variable según haya o no canciones no encontradas
         if n_unmatched > 0 and n_matched > 0:
             dialog.add_buttons(
-                "Cancelar", Gtk.ResponseType.CANCEL,
-                "Solo las que ya están", Gtk.ResponseType.NO,
-                f"Copiar {n_unmatched} y sincronizar", Gtk.ResponseType.YES,
+                _("Cancelar"), Gtk.ResponseType.CANCEL,
+                _("Solo las que ya están"), Gtk.ResponseType.NO,
+                _f("Copiar {} y sincronizar", n_unmatched), Gtk.ResponseType.YES,
             )
         elif n_unmatched > 0 and n_matched == 0:
             dialog.add_buttons(
-                "Cancelar", Gtk.ResponseType.CANCEL,
-                f"Copiar {n_unmatched} al iPod", Gtk.ResponseType.YES,
+                _("Cancelar"), Gtk.ResponseType.CANCEL,
+                _f("Copiar {} al iPod", n_unmatched), Gtk.ResponseType.YES,
             )
         else:
             dialog.add_buttons(
-                "Cancelar", Gtk.ResponseType.CANCEL,
-                "Sincronizar", Gtk.ResponseType.OK,
+                _("Cancelar"), Gtk.ResponseType.CANCEL,
+                _("Sincronizar"), Gtk.ResponseType.OK,
             )
 
         area = dialog.get_content_area()
@@ -2589,14 +2589,14 @@ class PlaylistWindow(Gtk.Window):
 
         hdr = Gtk.Label()
         hdr.set_markup(
-            f"<b>Sincronizar «{GLib.markup_escape_text(name)}» al iPod</b>")
+            _f("<b>Sincronizar «{}» al iPod</b>", GLib.markup_escape_text(name)))
         hdr.set_halign(Gtk.Align.START)
         area.pack_start(hdr, False, False, 0)
 
         summary = Gtk.Label()
         summary.set_markup(
-            f"<b>{n_matched}</b> de <b>{n_total}</b> canciones están ya en el iPod.\n"
-            f"<b>{n_unmatched}</b> no están y se pueden copiar.")
+            _f("<b>{}</b> de <b>{}</b> canciones están ya en el iPod.\n"
+               "<b>{}</b> no están y se pueden copiar.", n_matched, n_total, n_unmatched))
         summary.set_halign(Gtk.Align.START)
         summary.set_line_wrap(True)
         area.pack_start(summary, False, False, 0)
@@ -2612,15 +2612,15 @@ class PlaylistWindow(Gtk.Window):
                 f"{n} {ext.upper()}" for ext, n in sorted(exts.items()))
             ext_lbl = Gtk.Label()
             ext_lbl.set_markup(
-                f"<span size='small'>A copiar: {ext_summary}</span>")
+                _f("<span size='small'>A copiar: {}</span>", ext_summary))
             ext_lbl.set_halign(Gtk.Align.START)
             area.pack_start(ext_lbl, False, False, 0)
 
         if n_unmatched > 0:
             warning = Gtk.Label()
             warning.set_markup(
-                "<span foreground='#c06000'>Las canciones copiadas se añadirán "
-                "a la biblioteca del iPod y a esta playlist.</span>")
+                _("<span foreground='#c06000'>Las canciones copiadas se añadirán "
+                  "a la biblioteca del iPod y a esta playlist.</span>"))
             warning.set_halign(Gtk.Align.START)
             warning.set_line_wrap(True)
             warning.set_max_width_chars(70)
@@ -2629,7 +2629,7 @@ class PlaylistWindow(Gtk.Window):
         # Expandible con la lista de no encontradas
         if n_unmatched > 0:
             expander = Gtk.Expander(
-                label=f"Ver las {n_unmatched} canciones a copiar")
+                label=_f("Ver las {} canciones a copiar", n_unmatched))
             box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
             box.set_border_width(6)
             for lt in unmatched[:60]:
@@ -2640,7 +2640,7 @@ class PlaylistWindow(Gtk.Window):
                 box.pack_start(lbl, False, False, 0)
             if n_unmatched > 60:
                 box.pack_start(
-                    Gtk.Label(label=f"  … y {n_unmatched - 60} más", xalign=0),
+                    Gtk.Label(label=_f("  … y {} más", n_unmatched - 60), xalign=0),
                     False, False, 0)
             expander.add(box)
             area.pack_start(expander, False, False, 0)
@@ -2648,9 +2648,9 @@ class PlaylistWindow(Gtk.Window):
         # Nota de idempotencia
         sec = Gtk.Label()
         sec.set_markup(
-            "<span size='small'>La playlist en el iPod se borrará y se "
-            "recreará desde cero. Es idempotente: sincronizar varias veces "
-            "no duplica canciones.</span>")
+            _("<span size='small'>La playlist en el iPod se borrará y se "
+              "recreará desde cero. Es idempotente: sincronizar varias veces "
+              "no duplica canciones.</span>"))
         sec.set_halign(Gtk.Align.START)
         sec.set_line_wrap(True)
         sec.set_max_width_chars(70)
@@ -2691,7 +2691,7 @@ class PlaylistWindow(Gtk.Window):
                 src_db = os.path.join(mount, "iPod_Control", "iTunes", "iTunesDB")
                 shutil.copy2(src_db, os.path.join(backup_dir, f"iTunesDB-antes-sync-{stamp}"))
             except Exception as e:
-                self.status_label.set_text(f"Error backup: {e}. Abortando.")
+                self.status_label.set_text(_f("Error backup: {}. Abortando.", e))
                 return
 
         # Crear un mapa para obtener el start_time_ms desde la biblioteca
@@ -2746,7 +2746,7 @@ class PlaylistWindow(Gtk.Window):
         """Se ejecuta cuando termina la copia. Relee el iPod y sincroniza."""
         if err:
             self.status_label.set_text(
-                f"Error al copiar: {err[:250]}")
+                _f("Error al copiar: {}", err[:250]))
             return False
 
         self.status_label.set_text(
@@ -2770,7 +2770,7 @@ class PlaylistWindow(Gtk.Window):
         """Ya tenemos el iPod releído. Rehacer matching y sincronizar."""
         if err:
             self.status_label.set_text(
-                f"Copia hecha, pero falló releer el iPod: {err}")
+                _f("Copia hecha, pero falló releer el iPod: {}", err))
             return False
 
         # Actualizar estado del iPod
@@ -2801,13 +2801,10 @@ class PlaylistWindow(Gtk.Window):
 
         if still_unmatched:
             self.status_label.set_text(
-                f"Aviso: {len(still_unmatched)} canciones no se pudieron "
-                f"identificar tras la copia. Sincronizando solo las "
-                f"{len(matched)} encontradas.")
+                _f("Aviso: {} canciones no se pudieron identificar tras la copia. Sincronizando solo las {} encontradas.", len(still_unmatched), len(matched)))
         else:
             self.status_label.set_text(
-                f"Todas las canciones identificadas. "
-                f"Sincronizando «{name}» ({len(matched)} pistas)…")
+                _f("Todas las canciones identificadas. Sincronizando «{}» ({} pistas)…", name, len(matched)))
 
         # Sincronizar la playlist con las matched
         self._do_sync_playlist_after_copy(playlist, matched, backup_stamp)
@@ -2841,13 +2838,13 @@ class PlaylistWindow(Gtk.Window):
                         backup_dir, f"PlayCounts-antes-sync-{stamp}")
                     shutil.copy2(src_pc, dst_pc)
             except Exception as e:
-                self.status_label.set_text(f"Error al hacer backup: {e}. Abortando.")
+                self.status_label.set_text(_f("Error al hacer backup: {}. Abortando.", e))
                 return
         else:
             stamp = backup_stamp
 
         self.status_label.set_text(
-            f"Sincronizando «{name}» al iPod ({len(track_ids)} pistas)…")
+            _f("Sincronizando «{}» al iPod ({} pistas)…", name, len(track_ids)))
 
         def worker():
             out, err = ipod_write.sync_playlist(mount, name, track_ids)
@@ -2880,7 +2877,7 @@ class PlaylistWindow(Gtk.Window):
     def _on_sync_done(self, playlist, n_tracks, out, err, backup_stamp):
         name = playlist["name"]
         if err:
-            self.status_label.set_text(f"Error al sincronizar: {err[:200]}")
+            self.status_label.set_text(_f("Error al sincronizar: {}", err[:200]))
             return False
 
         # Refrescar el estado del iPod
@@ -2889,14 +2886,13 @@ class PlaylistWindow(Gtk.Window):
             if rerr:
                 GLib.idle_add(
                     self.status_label.set_text,
-                    f"Sincronizado, pero falló releer el iPod: {rerr}")
+                    _f("Sincronizado, pero falló releer el iPod: {}", rerr))
                 return
             GLib.idle_add(self._on_ipod_read,
                           self.ipod_mount, data, None)
 
         self.status_label.set_text(
-            f"«{name}» sincronizada al iPod ({n_tracks} pistas). "
-            f"Backup: {backup_stamp}")
+            _f("«{}» sincronizada al iPod ({} pistas). Backup: {}", name, n_tracks, backup_stamp))
         threading.Thread(target=reload, daemon=True).start()
         return False
 
@@ -2904,7 +2900,7 @@ class PlaylistWindow(Gtk.Window):
         """Exporta la lista actual (o lo visible en ella) a un archivo .pls."""
         # Determinar nombre y uris
         if self.current_playlist_id is None:
-            playlist_name = "Toda la música"
+            playlist_name = _("Toda la música")
             # Exportar lo que está visible en view_store (respeta búsqueda)
             uris = self._visible_uris()
         else:
@@ -2944,19 +2940,19 @@ class PlaylistWindow(Gtk.Window):
 
         # File chooser para el destino
         chooser = Gtk.FileChooserDialog(
-            title="Exportar lista a .pls",
+            title=_("Exportar lista a .pls"),
             parent=self,
             action=Gtk.FileChooserAction.SAVE,
         )
-        chooser.add_buttons("Cancelar", Gtk.ResponseType.CANCEL,
-                            "Exportar", Gtk.ResponseType.OK)
+        chooser.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL,
+                            _("Exportar"), Gtk.ResponseType.OK)
         chooser.set_do_overwrite_confirmation(True)
         # Nombre sugerido, saneado
         safe_name = "".join(c if c.isalnum() or c in " -_" else "_" for c in playlist_name)
         chooser.set_current_name(safe_name.strip() + ".pls")
 
         filt = Gtk.FileFilter()
-        filt.set_name("Listas de reproducción (.pls)")
+        filt.set_name(_("Listas de reproducción (.pls)"))
         filt.add_pattern("*.pls")
         chooser.add_filter(filt)
 
@@ -2997,19 +2993,19 @@ class PlaylistWindow(Gtk.Window):
         # Mensaje de confirmación
         pl_id = getattr(row, "playlist_id", None)
         if pl_id is None:
-            self.status_label.set_text(f"Reproduciendo toda la biblioteca ({len(uris)} canciones)")
+            self.status_label.set_text(_f("Reproduciendo toda la biblioteca ({} canciones)", len(uris)))
         else:
             pl = self._get_playlist(pl_id)
             if pl:
-                self.status_label.set_text(f"Reproduciendo lista «{pl['name']}» ({len(uris)} canciones)")
+                self.status_label.set_text(_f("Reproduciendo lista «{}» ({} canciones)", pl['name'], len(uris)))
 
     def on_new_playlist(self, btn):
         dialog = Gtk.Dialog(
             title=_('Nueva lista de reproducción'),
             transient_for=self, modal=True,
         )
-        dialog.add_buttons("Cancelar", Gtk.ResponseType.CANCEL,
-                           "Crear", Gtk.ResponseType.OK)
+        dialog.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL,
+                           _("Crear"), Gtk.ResponseType.OK)
         box = dialog.get_content_area()
         box.set_spacing(8)
         box.set_border_width(10)
@@ -3028,7 +3024,7 @@ class PlaylistWindow(Gtk.Window):
                 self.playlists.append(pl)
                 playlists_mod.save(self.playlists)
                 self._rebuild_playlists_listbox(select_id=pl["id"])
-                self.status_label.set_text(f"Lista «{name}» creada")
+                self.status_label.set_text(_f("Lista «{}» creada", name))
         dialog.destroy()
 
     def _resolve_imported_path(self, p, pls_dir):
@@ -3090,11 +3086,11 @@ class PlaylistWindow(Gtk.Window):
             parent=self,
             action=Gtk.FileChooserAction.OPEN,
         )
-        chooser.add_buttons("Cancelar", Gtk.ResponseType.CANCEL,
-                            "Importar", Gtk.ResponseType.OK)
+        chooser.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL,
+                            _("Importar"), Gtk.ResponseType.OK)
         chooser.set_select_multiple(True)
         filt = Gtk.FileFilter()
-        filt.set_name("Listas (.pls, .m3u, .m3u8)")
+        filt.set_name(_("Listas (.pls, .m3u, .m3u8)"))
         for pat in ("*.pls", "*.PLS", "*.m3u", "*.M3U", "*.m3u8"):
             filt.add_pattern(pat)
         chooser.add_filter(filt)
@@ -3127,9 +3123,9 @@ class PlaylistWindow(Gtk.Window):
             if imported:
                 playlists_mod.save(self.playlists)
                 self._rebuild_playlists_listbox(select_id=last_id)
-            msg = f"{imported} lista(s) importada(s)"
+            msg = _f("{} lista(s) importada(s)", imported)
             if errors:
-                msg += f" — {len(errors)} error(es)"
+                msg += _f(" — {} error(es)", len(errors))
                 for e in errors:
                     print(f"[import] {e}")
             self.status_label.set_text(msg)
@@ -3146,10 +3142,10 @@ class PlaylistWindow(Gtk.Window):
             transient_for=self, modal=True,
             message_type=Gtk.MessageType.QUESTION,
             buttons=Gtk.ButtonsType.YES_NO,
-            text=f"¿Eliminar la lista «{pl['name']}»?",
+            text=_f("¿Eliminar la lista «{}»?", pl['name']),
         )
         dialog.format_secondary_text(
-            "Se elimina solo la lista. Las canciones permanecen en tu biblioteca.")
+            _("Se elimina solo la lista. Las canciones permanecen en tu biblioteca."))
         if dialog.run() == Gtk.ResponseType.YES:
             self.playlists = [p for p in self.playlists
                               if p["id"] != self.current_playlist_id]
@@ -3239,7 +3235,7 @@ class PlaylistWindow(Gtk.Window):
         tracks = row.artist_tracks
         albums = {}
         for r in tracks:
-            alb = r[COL_ALBUM] or "(Sin álbum)"
+            alb = r[COL_ALBUM] or _("(Sin álbum)")
             if alb not in albums:
                 albums[alb] = []
             albums[alb].append(r)
@@ -3570,9 +3566,9 @@ class PlaylistWindow(Gtk.Window):
                 self.status_label.set_text(_('Guardando en el iPod…'))
                 def worker():
                     out, err = ipod_write.update_metadata(self.ipod_mount, [new_data])
-                    if err: GLib.idle_add(self.status_label.set_text, f"Error: {err[:100]}")
+                    if err: GLib.idle_add(self.status_label.set_text, _f("Error: {}", err[:100]))
                     else:
-                        GLib.idle_add(self.status_label.set_text, "Metadatos guardados en el iPod")
+                        GLib.idle_add(self.status_label.set_text, _("Metadatos guardados en el iPod"))
                         data, rerr = ipod.read_ipod(self.ipod_mount)
                         if not rerr: GLib.idle_add(self._on_ipod_read, self.ipod_mount, data, None)
                 threading.Thread(target=worker, daemon=True).start()
@@ -3835,9 +3831,9 @@ class PlaylistWindow(Gtk.Window):
             self._apply_filters()
             if errores_tags:
                 self.status_label.set_text(
-                    f"Álbum actualizado en {updated_count} canciones, pero falló en: " + ", ".join(errores_tags[:3]))
+                    _f("Álbum actualizado en {} canciones, pero falló en: ", updated_count) + ", ".join(errores_tags[:3]))
             else:
-                self.status_label.set_text(f"Álbum actualizado en {updated_count} canciones y tags físicos.")
+                self.status_label.set_text(_f("Álbum actualizado en {} canciones y tags físicos.", updated_count))
         dialog.destroy()
 
     def _on_search_metadata_clicked(self, btn, entries):
@@ -3847,7 +3843,7 @@ class PlaylistWindow(Gtk.Window):
             self.status_label.set_text(_('Escribe al menos Artista y Álbum para buscar'))
             return
 
-        self.status_label.set_text(f"Buscando «{artist} - {album}» en la web…")
+        self.status_label.set_text(_f("Buscando «{} - {}» en la web…", artist, album))
         btn.set_sensitive(False)
         
         def worker():
@@ -3936,7 +3932,7 @@ class PlaylistWindow(Gtk.Window):
                     entries["genre"].set_text(r["genre"] or "")
                 if "year" in entries:
                     entries["year"].set_text(r["year"] or "")
-                self.status_label.set_text(f"Información de {r['source']} aplicada. Revisa y haz clic en Guardar.")
+                self.status_label.set_text(_f("Información de {} aplicada. Revisa y haz clic en Guardar.", r['source']))
         dialog.destroy()
 
     def _get_album_uris(self, artist, album):
@@ -3986,7 +3982,7 @@ class PlaylistWindow(Gtk.Window):
                 if errors:
                     detail = "; ".join(f"{k}: {v}" for k, v in errors.items())
                     self.status_label.set_text(
-                        f"No se encontraron carátulas ({detail})")
+                        _f("No se encontraron carátulas ({})", detail))
                 else:
                     self.status_label.set_text(
                         _('No se encontraron carátulas en iTunes ni Deezer'))
@@ -4167,14 +4163,13 @@ class PlaylistWindow(Gtk.Window):
                         pass
 
                 if len(targets) > 1:
-                    msg = f"Carátula aplicada a {ok_count} canciones"
+                    msg = _f("Carátula aplicada a {} canciones", ok_count)
                     if err_count:
-                        msg += f" ({err_count} errores)"
+                        msg += _f(" ({} errores)", err_count)
                     self.status_label.set_text(msg)
                 else:
                     self.status_label.set_text(
-                        f"Carátula guardada ({r['source']}): "
-                        f"{r['title']} — {r['artist']}")
+                        _f("Carátula guardada ({}): {} — {}", r['source'], r['title'], r['artist']))
 
                 # Refrescar panel Now Playing si la canción actual está afectada
                 if self.current_uri in targets:
@@ -4198,11 +4193,11 @@ class PlaylistWindow(Gtk.Window):
             action=Gtk.FileChooserAction.OPEN,
         )
         chooser.add_buttons(
-            "Cancelar", Gtk.ResponseType.CANCEL,
-            "Usar esta imagen", Gtk.ResponseType.OK,
+            _("Cancelar"), Gtk.ResponseType.CANCEL,
+            _("Usar esta imagen"), Gtk.ResponseType.OK,
         )
         filt = Gtk.FileFilter()
-        filt.set_name("Imágenes")
+        filt.set_name(_("Imágenes"))
         for ext in ("*.jpg", "*.jpeg", "*.png", "*.JPG", "*.JPEG", "*.PNG"):
             filt.add_pattern(ext)
         chooser.add_filter(filt)
@@ -4233,16 +4228,16 @@ class PlaylistWindow(Gtk.Window):
                         pass
 
         if apply_album and album_uris:
-            msg = f"Carátula aplicada a {ok_count} canciones"
+            msg = _f("Carátula aplicada a {} canciones", ok_count)
             if err_count:
-                msg += f" ({err_count} errores)"
+                msg += _f(" ({} errores)", err_count)
             self.status_label.set_text(msg)
         else:
             if err_count:
-                self.status_label.set_text(f_('Error: no se pudo copiar la imagen'))
+                self.status_label.set_text(_("Error: no se pudo copiar la imagen"))
             else:
                 self.status_label.set_text(
-                    f"Carátula copiada desde {os.path.basename(src)}")
+                    _f("Carátula copiada desde {}", os.path.basename(src)))
 
         if self.current_uri in targets:
             threading.Thread(
@@ -4269,14 +4264,14 @@ class PlaylistWindow(Gtk.Window):
             title=_('Añadir a lista'),
             transient_for=self, modal=True,
         )
-        dialog.add_buttons("Cancelar", Gtk.ResponseType.CANCEL,
-                           "Añadir", Gtk.ResponseType.OK)
+        dialog.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL,
+                           _("Añadir"), Gtk.ResponseType.OK)
         dialog.set_default_size(400, -1)
         box = dialog.get_content_area()
         box.set_spacing(8)
         box.set_border_width(10)
 
-        lbl = Gtk.Label(label=f"Canción: {title}" if title else "Canción actual")
+        lbl = Gtk.Label(label=_f("Canción: {}", title) if title else _("Canción actual"))
         lbl.set_halign(Gtk.Align.START)
         lbl.set_ellipsize(Pango.EllipsizeMode.END)
         box.pack_start(lbl, False, False, 0)
@@ -4295,7 +4290,7 @@ class PlaylistWindow(Gtk.Window):
             combo.set_active(0)
         else:
             combo.set_sensitive(False)
-            combo.append("__none__", "(no hay listas manuales)")
+            combo.append("__none__", _("(no hay listas manuales)"))
             combo.set_active(0)
         box.pack_start(combo, False, False, 0)
 
@@ -4349,15 +4344,15 @@ class PlaylistWindow(Gtk.Window):
             title=_('Añadir a lista'),
             transient_for=self, modal=True,
         )
-        dialog.add_buttons("Cancelar", Gtk.ResponseType.CANCEL,
-                           "Añadir", Gtk.ResponseType.OK)
+        dialog.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL,
+                           _("Añadir"), Gtk.ResponseType.OK)
         dialog.set_default_size(420, -1)
         box = dialog.get_content_area()
         box.set_spacing(8)
         box.set_border_width(10)
 
         label = Gtk.Label(
-            label=f"{len(uris)} canción(es) → ¿a qué lista?")
+            label=_f("{} canción(es) → ¿a qué lista?", len(uris)))
         label.set_halign(Gtk.Align.START)
         box.pack_start(label, False, False, 0)
 
@@ -4375,7 +4370,7 @@ class PlaylistWindow(Gtk.Window):
             combo.set_active(0)
         else:
             combo.set_sensitive(False)
-            combo.append("__none__", "(no hay listas manuales)")
+            combo.append("__none__", _("(no hay listas manuales)"))
             combo.set_active(0)
         box.pack_start(combo, False, False, 0)
 
@@ -4419,7 +4414,7 @@ class PlaylistWindow(Gtk.Window):
                     self._rebuild_playlists_listbox(select_id=self.current_playlist_id)
                     if added > 0:
                         self.status_label.set_text(
-                            f"{added} canción(es) añadida(s) a «{pl['name']}»")
+                            _f("{} canción(es) añadida(s) a «{}»", added, pl['name']))
                     else:
                         self.status_label.set_text(
                             _f("Las canciones ya estaban en «{}»", pl['name']))
@@ -4550,7 +4545,7 @@ class PlaylistWindow(Gtk.Window):
             valid_tracks.append(t)
             
         n = len(self.store)
-        self.status_label.set_text(f"{n} pistas" if n else "0 pistas")
+        self.status_label.set_text(_f("{} pistas", n) if n else _("0 pistas"))
         
         if enriched:
             print(f"[library] {enriched} pistas: track-number inferido del nombre")
@@ -4598,8 +4593,8 @@ class PlaylistWindow(Gtk.Window):
         # 1. Agrupar las canciones por (Artista, Álbum)
         for row in self.store:
             title = row[COL_TITLE]
-            artist = row[COL_ARTIST] or "(Sin artista)"
-            album = row[COL_ALBUM] or "(Sin álbum)"
+            artist = row[COL_ARTIST] or _("(Sin artista)")
+            album = row[COL_ALBUM] or _("(Sin álbum)")
             uri = row[COL_URI]
             
             if self.current_playlist_uris is not None and uri not in self.current_playlist_uris:
@@ -4784,7 +4779,7 @@ class PlaylistWindow(Gtk.Window):
         q = (query or "").lower().strip()
         groups = {}
         for row in self.store:
-            artist = row[COL_ARTIST] or "(Sin artista)"
+            artist = row[COL_ARTIST] or _("(Sin artista)")
             uri = row[COL_URI]
             
             if self.current_playlist_uris is not None and uri not in self.current_playlist_uris:
@@ -4856,7 +4851,7 @@ class PlaylistWindow(Gtk.Window):
         if not artist or not title:
             buf.set_text(_('Esta pista no tiene artista o título; no se puede buscar la letra.'))
             return
-        buf.set_text(f"Buscando letra para {artist} — {title}…")
+        buf.set_text(_f("Buscando letra para {} — {}…", artist, title))
         def worker():
             text, err = get_lyrics(artist, title)
             GLib.idle_add(finish, text, err)
@@ -4879,11 +4874,11 @@ class PlaylistWindow(Gtk.Window):
         chooser = Gtk.FileChooserDialog(
             title=_('Añadir archivos de audio'), parent=self,
             action=Gtk.FileChooserAction.OPEN)
-        chooser.add_buttons("Cancelar", Gtk.ResponseType.CANCEL,
-                            "Añadir", Gtk.ResponseType.OK)
+        chooser.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL,
+                            _("Añadir"), Gtk.ResponseType.OK)
         chooser.set_select_multiple(True)
         filt = Gtk.FileFilter()
-        filt.set_name("Audio")
+        filt.set_name(_("Audio"))
         for ext in AUDIO_EXT:
             filt.add_pattern("*" + ext)
         chooser.add_filter(filt)
@@ -4964,7 +4959,7 @@ class PlaylistWindow(Gtk.Window):
         if os.path.exists(path):
             self.add_single_track_to_library(path)
             self._apply_filters()
-            self.status_label.set_text(f"Nuevo archivo detectado: {os.path.basename(path)}")
+            self.status_label.set_text(_f("Nuevo archivo detectado: {}", os.path.basename(path)))
         return False
 
     def _process_new_dir(self, path):
@@ -4987,7 +4982,7 @@ class PlaylistWindow(Gtk.Window):
         if paths:
             self.start_import(paths)
             
-        self.status_label.set_text(f"Nueva carpeta detectada e importada: {os.path.basename(path)}")
+        self.status_label.set_text(_f("Nueva carpeta detectada e importada: {}", os.path.basename(path)))
         return False
 
 
@@ -4997,8 +4992,8 @@ class PlaylistWindow(Gtk.Window):
         chooser = Gtk.FileChooserDialog(
             title=_('Añadir carpeta de música'), parent=self,
             action=Gtk.FileChooserAction.SELECT_FOLDER)
-        chooser.add_buttons("Cancelar", Gtk.ResponseType.CANCEL,
-                            "Añadir", Gtk.ResponseType.OK)
+        chooser.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL,
+                            _("Añadir"), Gtk.ResponseType.OK)
         if chooser.run() == Gtk.ResponseType.OK:
             folder = chooser.get_filename()
             chooser.destroy()
@@ -5034,14 +5029,14 @@ class PlaylistWindow(Gtk.Window):
         self.import_total = len(new_paths)
         self.import_done = 0
         self.import_skipped = skipped
-        msg = f"Importando 0/{self.import_total}"
+        msg = _f("Importando 0/{}", self.import_total)
         if skipped:
-            msg += f" (saltando {skipped} ya importadas)"
+            msg += _f(" (saltando {} ya importadas)", skipped)
         self.import_bar.set_fraction(0.0)
         self.import_bar.set_text(msg + "…")
         self.import_box.show_all()
         self.btn_add_music.set_sensitive(False)
-        self.status_label.set_text(f"Importando {self.import_total} pistas…")
+        self.status_label.set_text(_f("Importando {} pistas…", self.import_total))
         threading.Thread(target=self._import_worker,
                          args=(new_paths,), daemon=True).start()
 
@@ -5146,9 +5141,7 @@ class PlaylistWindow(Gtk.Window):
             buttons=Gtk.ButtonsType.YES_NO,
             text=_('¿Vaciar la biblioteca?'))
         dialog.format_secondary_text(
-            f"Se eliminarán {len(self.store)} pistas de la lista.\n"
-            "Los archivos de audio originales no se tocan.\n"
-            "Las listas de reproducción no se eliminan.")
+            _f("Se eliminarán {} pistas de la lista.\nLos archivos de audio originales no se tocan.\nLas listas de reproducción no se eliminan.", len(self.store)))
         response = dialog.run()
         dialog.destroy()
         if response != Gtk.ResponseType.YES:
@@ -5863,7 +5856,7 @@ class PlaylistWindow(Gtk.Window):
         if not feed_url:
             return
         dialog = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.QUESTION, buttons=Gtk.ButtonsType.YES_NO, text=_('¿Desuscribirse de este podcast?'))
-        dialog.format_secondary_text("Se eliminará de la lista de suscripciones.\nLos episodios ya descargados en ~/Podcasts no se tocan.")
+        dialog.format_secondary_text(_("Se eliminará de la lista de suscripciones.\nLos episodios ya descargados en ~/Podcasts no se tocan."))
         if dialog.run() != Gtk.ResponseType.YES:
             dialog.destroy()
             return
@@ -5986,15 +5979,15 @@ class PlaylistWindow(Gtk.Window):
                 "ref": ref,
                 "base_dir": base_dir
             })
-            model.set_value(it, 3, "En cola")
+            model.set_value(it, 3, _("En cola"))
             model.set_value(it, 4, 0)
             model.set_value(it, 6, False)
             model.set_value(it, 7, True)
             added += 1
         if added == 0:
-            self.episodes_status.set_text(f"Nada que descargar ({already} ya descargados)")
+            self.episodes_status.set_text(_f("Nada que descargar ({} ya descargados)", already))
             return
-        self.episodes_status.set_text(f"{added} en cola" + (f", {already} ya descargados" if already else ""))
+        self.episodes_status.set_text(_f("{} en cola", added) + (_f(", {} ya descargados", already) if already else ""))
         if not self.download_in_progress:
             self._process_next_download()
 
@@ -6020,7 +6013,7 @@ class PlaylistWindow(Gtk.Window):
         self.download_box.show_all()
         self.download_bar.set_fraction(0.0)
         remaining = len(self.download_queue) + 1
-        self.download_bar.set_text(f"En cola: {remaining} restante(s). Descargando: {item['title'][:50]}")
+        self.download_bar.set_text(_f("En cola: {} restante(s). Descargando: {}", remaining, item['title'][:50]))
         model.set_value(it, 3, _("Iniciando…"))
         model.set_value(it, 4, 0)
         model.set_value(it, 6, True)
@@ -6083,7 +6076,7 @@ class PlaylistWindow(Gtk.Window):
             model.set_value(it, 7, False)
         else:
             self.download_bar.pulse()
-            self.download_bar.set_text(f"Descargando: {fmt_size(downloaded)}")
+            self.download_bar.set_text(_f("Descargando: {}", fmt_size(downloaded)))
             model.set_value(it, 3, _f("Descargando ({})", fmt_size(downloaded)))
             model.set_value(it, 4, 0)
             model.set_value(it, 6, True)
@@ -6105,14 +6098,14 @@ class PlaylistWindow(Gtk.Window):
 
     def _open_smart_playlist_dialog(self, playlist=None):
         dialog = Gtk.Dialog(
-            title="Nueva lista inteligente" if playlist is None
-                  else f"Editar «{playlist['name']}»",
+            title=_("Nueva lista inteligente") if playlist is None
+                  else _f("Editar «{}»", playlist['name']),
             transient_for=self,
             modal=True,
         )
         dialog.set_default_size(500, 500)
-        dialog.add_buttons("Cancelar", Gtk.ResponseType.CANCEL,
-                           "Guardar", Gtk.ResponseType.OK)
+        dialog.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL,
+                           _("Guardar"), Gtk.ResponseType.OK)
         area = dialog.get_content_area()
         area.set_spacing(8)
         area.set_border_width(10)
@@ -6255,7 +6248,7 @@ class PlaylistWindow(Gtk.Window):
                 self.playlists.append(pl)
                 playlists_mod.save(self.playlists)
                 self._rebuild_playlists_listbox(select_id=pl["id"])
-                self.status_label.set_text(f"Lista inteligente «{name}» creada")
+                self.status_label.set_text(_f("Lista inteligente «{}» creada", name))
             else:
                 playlist["name"] = name
                 playlist["rules"] = rules
@@ -6265,7 +6258,7 @@ class PlaylistWindow(Gtk.Window):
                     playlist.pop("limit_minutes", None)
                 playlists_mod.save(self.playlists)
                 self._rebuild_playlists_listbox(select_id=playlist["id"])
-                self.status_label.set_text(f"Lista «{name}» actualizada")
+                self.status_label.set_text(_f("Lista «{}» actualizada", name))
 
         dialog.destroy()
 
@@ -6305,8 +6298,8 @@ class PlaylistWindow(Gtk.Window):
             self.btn_sync_all.set_sensitive(True)
             self.btn_sync_selection.set_sensitive(True)
         except Exception as e:
-            self.ipod_info_model.set_markup("<b>Error</b>")
-            self.ipod_info_capacity.set_text(f"Error: {e}")
+            self.ipod_info_model.set_markup(_("<b>Error</b>"))
+            self.ipod_info_capacity.set_text(_f("Error: {}", e))
             self.ipod_info_bar.set_fraction(0)
             self.ipod_info_usage.set_text("")
             self.ipod_content_btn.set_sensitive(False)
@@ -6354,15 +6347,15 @@ class PlaylistWindow(Gtk.Window):
                     res_eject = subprocess.run(["eject", base_device], capture_output=True)
                     if res_eject.returncode != 0:
                         # Intento 3: Si de plano está bloqueado, ahí sí pedimos contraseña
-                        GLib.idle_add(self.status_label.set_text, "Expulsión normal bloqueada. Pidiendo permisos...")
+                        GLib.idle_add(self.status_label.set_text, _("Expulsión normal bloqueada. Pidiendo permisos..."))
                         subprocess.run(["pkexec", os.path.join(os.path.dirname(os.path.abspath(__file__)), "ipod_eject_helper.sh"), base_device, mount])
 
                 # Actualizar la interfaz
                 GLib.idle_add(self._on_ipod_disconnected)
-                GLib.idle_add(self.status_label.set_text, "iPod expulsado. Puedes desconectarlo con seguridad.")
+                GLib.idle_add(self.status_label.set_text, _("iPod expulsado. Puedes desconectarlo con seguridad."))
                 
             except Exception as e:
-                GLib.idle_add(self.status_label.set_text, f"Error al expulsar: {e}")
+                GLib.idle_add(self.status_label.set_text, _f("Error al expulsar: {}", e))
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -6394,7 +6387,7 @@ class PlaylistWindow(Gtk.Window):
         # Si no hay iPod montado (disco en blanco), mostrar ventana de selección manual
         if not block_device or not model_id:
             dialog = Gtk.Dialog(title=_('Restauración Manual de iPod'), transient_for=self, modal=True)
-            dialog.add_buttons("Cancelar", Gtk.ResponseType.CANCEL, "Continuar", Gtk.ResponseType.OK)
+            dialog.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL, _("Continuar"), Gtk.ResponseType.OK)
             box = dialog.get_content_area()
             box.set_spacing(10)
             box.set_border_width(15)
@@ -6428,10 +6421,10 @@ class PlaylistWindow(Gtk.Window):
 
             combo_model = Gtk.ComboBoxText()
             modelos = [
-                ("1g", "iPod 1ª Generación"), ("2g", "iPod 2ª Generación"),
-                ("3g", "iPod 3ª Generación"), ("4g", "iPod 4ª Generación (Monocromático)"),
-                ("photo", "iPod Photo (4ª Gen Color)"), ("mini1", "iPod Mini 1ª Gen"),
-                ("mini2", "iPod Mini 2ª Gen")
+                ("1g", _("iPod 1ª Generación")), ("2g", _("iPod 2ª Generación")),
+                ("3g", _("iPod 3ª Generación")), ("4g", _("iPod 4ª Generación (Monocromático)")),
+                ("photo", _("iPod Photo (4ª Gen Color)")), ("mini1", _("iPod Mini 1ª Gen")),
+                ("mini2", _("iPod Mini 2ª Gen"))
             ]
             for m_id, m_name in modelos:
                 combo_model.append(m_id, m_name)
@@ -6454,8 +6447,8 @@ class PlaylistWindow(Gtk.Window):
         fw_image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "firmwares", fw_filename)
 
         if not os.path.exists(fw_image_path):
-            dialog = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.ERROR, buttons=Gtk.ButtonsType.OK, text=f"Falta el archivo de firmware para {model_id.upper()}.")
-            dialog.format_secondary_text(f"El programa esperaba encontrar:\n{fw_image_path}")
+            dialog = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.ERROR, buttons=Gtk.ButtonsType.OK, text=_f("Falta el archivo de firmware para {}.", model_id.upper()))
+            dialog.format_secondary_text(_f("El programa esperaba encontrar:\n{}", fw_image_path))
             dialog.run()
             dialog.destroy()
             return
@@ -6514,7 +6507,7 @@ class PlaylistWindow(Gtk.Window):
                 if process.returncode != 0:
                     GLib.idle_add(self.status_label.set_text, _("Restauración cancelada o fallida."))
             except Exception as e:
-                GLib.idle_add(self.status_label.set_text, f"Error inesperado: {e}")
+                GLib.idle_add(self.status_label.set_text, _f("Error inesperado: {}", e))
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -6661,7 +6654,7 @@ class PlaylistWindow(Gtk.Window):
 
         renderer = Gtk.CellRendererText()
         renderer.set_property("ellipsize", Pango.EllipsizeMode.END)
-        col = Gtk.TreeViewColumn("Artista / Álbum / Canción", renderer, text=0)
+        col = Gtk.TreeViewColumn(_("Artista / Álbum / Canción"), renderer, text=0)
         col.set_expand(True)
         self.ipod_artists_view.append_column(col)
 
@@ -6697,7 +6690,7 @@ class PlaylistWindow(Gtk.Window):
         self.ipod_pls_view.append_column(c1)
         r2 = Gtk.CellRendererText()
         r2.set_property("xalign", 1.0)
-        c2 = Gtk.TreeViewColumn("Pistas", r2, text=1)
+        c2 = Gtk.TreeViewColumn(_("Pistas"), r2, text=1)
         self.ipod_pls_view.append_column(c2)
         left_scroll.add(self.ipod_pls_view)
         box.pack_start(left_scroll, False, False, 0)
@@ -6748,14 +6741,13 @@ class PlaylistWindow(Gtk.Window):
                 if track_ids and t.get("id") not in track_ids:
                     continue
                 self.ipod_pls_tracks_store.append([
-                    t.get("artist", "") or "(sin artista)",
-                    t.get("album", "") or "(sin álbum)",
-                    t.get("title", "") or "(sin título)",
+                    t.get("artist", "") or _("(sin artista)"),
+                    t.get("album", "") or _("(sin álbum)"),
+                    t.get("title", "") or _("(sin título)"),
                     int(t.get("id", 0))
                 ])
             self.ipod_pls_right_label.set_markup(
-                f"<b>{GLib.markup_escape_text(pl.get('name', '?'))}</b> "
-                f"({len(self.ipod_pls_tracks_store)} canciones)")
+                _f("<b>{}</b> ({} canciones)", GLib.markup_escape_text(pl.get('name', '?')), len(self.ipod_pls_tracks_store)))
 
         self.ipod_pls_view.get_selection().connect("changed", on_pl_selected)
         return box
@@ -6769,7 +6761,7 @@ class PlaylistWindow(Gtk.Window):
         self.ipod_podcasts_view.connect("button-press-event", self.on_ipod_button_press)
         self.ipod_podcasts_view.connect("row-activated", self.on_ipod_song_activated)
         
-        for i, name in enumerate((_("Artista"), _("Álbum"), _("Título"), "Dur.")):
+        for i, name in enumerate((_("Artista"), _("Álbum"), _("Título"), _("Dur."))):
             r = Gtk.CellRendererText()
             r.set_property("ellipsize", Pango.EllipsizeMode.END)
             if i == 3:
@@ -6803,20 +6795,20 @@ class PlaylistWindow(Gtk.Window):
             stars = ipod.rating_to_stars(t.get("rating", 0))
             stars_str = "★" * stars + "☆" * (5 - stars)
             self.ipod_songs_store.append([
-                t.get("artist", "") or "(sin artista)",
-                t.get("album", "") or "(sin álbum)",
-                t.get("title", "") or "(sin título)",
+                t.get("artist", "") or _("(sin artista)"),
+                t.get("album", "") or _("(sin álbum)"),
+                t.get("title", "") or _("(sin título)"),
                 dur_str, int(t.get("playcount", 0)), stars_str,
                 int(t.get("id", 0))
             ])
 
         self.ipod_playlists_store.clear()
         for p in self.ipod_data.get("playlists", []):
-            name = p.get("name", "") or "(sin nombre)"
+            name = p.get("name", "") or _("(sin nombre)")
             if p.get("is_master"):
-                name = f"[Maestra] {name}"
+                name = _f("[Maestra] {}", name)
             elif p.get("is_smart"):
-                name = f"[Smart] {name}"
+                name = _f("[Smart] {}", name)
             self.ipod_playlists_store.append([name, p.get("track_count", 0)])
         
         first = self.ipod_playlists_store.get_iter_first()
@@ -6839,18 +6831,18 @@ class PlaylistWindow(Gtk.Window):
             dur_ms = t.get("duration_ms", 0)
             dur_str = f"{dur_ms // 60000}:{(dur_ms // 1000) % 60:02d}"
             self.ipod_podcasts_store.append([
-                t.get("artist", "") or "(sin artista)",
-                t.get("album", "") or "(sin álbum)",
-                t.get("title", "") or "(sin título)", dur_str,
+                t.get("artist", "") or _("(sin artista)"),
+                t.get("album", "") or _("(sin álbum)"),
+                t.get("title", "") or _("(sin título)"), dur_str,
                 int(t.get("id", 0))
             ])
         # Poblar el árbol de Artistas
         self.ipod_artists_store.clear()
         groups = {}
         for t in self.ipod_data.get("tracks", []):
-            title = t.get("title", "") or "(sin título)"
-            artist = t.get("artist", "") or "(sin artista)"
-            album = t.get("album", "") or "(sin álbum)"
+            title = t.get("title", "") or _("(sin título)")
+            artist = t.get("artist", "") or _("(sin artista)")
+            album = t.get("album", "") or _("(sin álbum)")
             track_id = int(t.get("id", 0))
 
             if q and (q not in title.lower() and q not in artist.lower() and q not in album.lower()):
@@ -6875,7 +6867,7 @@ class PlaylistWindow(Gtk.Window):
             if "no se pudo leer iTunesDB" in err:
                 GLib.idle_add(self._prompt_init_ipod, mount_point)
                 return False
-            self.status_label.set_text(f"Error leyendo iPod: {err}")
+            self.status_label.set_text(_f("Error leyendo iPod: {}", err))
             self._update_ipod_info_box()
             return False
         self.ipod_mount = mount_point
@@ -6901,17 +6893,17 @@ class PlaylistWindow(Gtk.Window):
             text=_('Se ha detectado un iPod sin inicializar.')
         )
         dialog.format_secondary_text(
-            "El iPod se ha restaurado, pero su base de datos está vacía.\n"
-            "¿Deseas inicializarlo ahora para poder añadir música?"
+            _("El iPod se ha restaurado, pero su base de datos está vacía.\n"
+              "¿Deseas inicializarlo ahora para poder añadir música?")
         )
         if dialog.run() == Gtk.ResponseType.YES:
             self.status_label.set_text(_('Inicializando iPod…'))
             def worker():
                 out, err = ipod_write.init_ipod(mount_point)
                 if err:
-                    GLib.idle_add(self.status_label.set_text, f"Error al inicializar: {err}")
+                    GLib.idle_add(self.status_label.set_text, _f("Error al inicializar: {}", err))
                 else:
-                    GLib.idle_add(self.status_label.set_text, "iPod inicializado. Releyendo…")
+                    GLib.idle_add(self.status_label.set_text, _("iPod inicializado. Releyendo…"))
                     data, rerr = ipod.read_ipod(mount_point)
                     GLib.idle_add(self._on_ipod_read, mount_point, data, rerr)
             threading.Thread(target=worker, daemon=True).start()
@@ -6992,7 +6984,7 @@ class PlaylistWindow(Gtk.Window):
         if self.ipod_mount == path and self.ipod_data is not None:
             return False
         self.ipod_read_running = True
-        self.status_label.set_text(f"iPod detectado en {path}, leyendo…")
+        self.status_label.set_text(_f("iPod detectado en {}, leyendo…", path))
 
         def worker():
             # 1. Preparar el iPod automáticamente (crear SysInfo si falta)
@@ -7060,14 +7052,14 @@ class PlaylistWindow(Gtk.Window):
         full_path = ipod.ipod_track_full_path(self.ipod_mount, ipod_path)
         
         if not full_path or not os.path.exists(full_path):
-            self.status_label.set_text(f"Archivo no encontrado en el iPod: {full_path}")
+            self.status_label.set_text(_f("Archivo no encontrado en el iPod: {}", full_path))
             return
 
         # 3. Convertir la ruta a URI para que GStreamer la entienda
         try:
             uri = GLib.filename_to_uri(full_path, None)
         except Exception as e:
-            self.status_label.set_text(f"Error convirtiendo ruta a URI: {e}")
+            self.status_label.set_text(_f("Error convirtiendo ruta a URI: {}", e))
             return
 
         # 4. Preparar el reproductor
@@ -7079,8 +7071,8 @@ class PlaylistWindow(Gtk.Window):
         self.progress.set_value(0)
 
         # 5. Actualizar la interfaz (Panel derecho)
-        title = track_data.get("title", "Desconocido")
-        artist = track_data.get("artist", "Desconocido")
+        title = track_data.get("title", _("Desconocido"))
+        artist = track_data.get("artist", _("Desconocido"))
         album = track_data.get("album", "")
         
         self.now_playing_label.set_text(f"{artist} — {title}" if artist else title)
@@ -7107,7 +7099,7 @@ class PlaylistWindow(Gtk.Window):
         
         # Actualizar letras
         self.request_lyrics(artist, title)
-        self.status_label.set_text(f"Reproduciendo desde el iPod: {title}")
+        self.status_label.set_text(_f("Reproduciendo desde el iPod: {}", title))
 
     def _ask_backup(self):
         # El usuario prefiere hacer los backups manualmente.
@@ -7167,9 +7159,9 @@ class PlaylistWindow(Gtk.Window):
             transient_for=self, modal=True,
             message_type=Gtk.MessageType.WARNING,
             buttons=Gtk.ButtonsType.YES_NO,
-            text=f"¿Eliminar {n} elemento(s) del iPod?"
+            text=_f("¿Eliminar {} elemento(s) del iPod?", n)
         )
-        dialog.format_secondary_text("Se borrarán de la base de datos y del disco del iPod.")
+        dialog.format_secondary_text(_("Se borrarán de la base de datos y del disco del iPod."))
         
         if dialog.run() == Gtk.ResponseType.YES:
             dialog.destroy()
@@ -7177,7 +7169,7 @@ class PlaylistWindow(Gtk.Window):
             if resp_backup == Gtk.ResponseType.CANCEL: 
                 return # Cancelado
             
-            self.status_label.set_text(f"Eliminando {n} pistas del iPod…")
+            self.status_label.set_text(_f("Eliminando {} pistas del iPod…", n))
             
             def worker():
                 if resp_backup == Gtk.ResponseType.YES:
@@ -7189,7 +7181,7 @@ class PlaylistWindow(Gtk.Window):
                         src_db = os.path.join(self.ipod_mount, "iPod_Control", "iTunes", "iTunesDB")
                         shutil.copy2(src_db, os.path.join(backup_dir, f"iTunesDB-antes-borrar-{stamp}"))
                     except Exception as e:
-                        GLib.idle_add(self.status_label.set_text, f"Error backup: {e}")
+                        GLib.idle_add(self.status_label.set_text, _f("Error backup: {}", e))
                         return
                         
                 out, err = ipod_write.delete_tracks(self.ipod_mount, track_ids)
@@ -7197,9 +7189,9 @@ class PlaylistWindow(Gtk.Window):
                 except: pass
                 
                 if err:
-                    GLib.idle_add(self.status_label.set_text, f"Error: {err[:150]}")
+                    GLib.idle_add(self.status_label.set_text, _f("Error: {}", err[:150]))
                 else:
-                    GLib.idle_add(self.status_label.set_text, f"{n} elemento(s) eliminados")
+                    GLib.idle_add(self.status_label.set_text, _f("{} elemento(s) eliminados", n))
                     data, rerr = ipod.read_ipod(self.ipod_mount)
                     if not rerr:
                         GLib.idle_add(self._on_ipod_read, self.ipod_mount, data, None)
@@ -7262,8 +7254,8 @@ class PlaylistWindow(Gtk.Window):
             parent=self,
             action=Gtk.FileChooserAction.SELECT_FOLDER,
         )
-        chooser.add_buttons("Cancelar", Gtk.ResponseType.CANCEL,
-                            "Copiar aquí", Gtk.ResponseType.OK)
+        chooser.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL,
+                            _("Copiar aquí"), Gtk.ResponseType.OK)
         
         if chooser.run() != Gtk.ResponseType.OK:
             chooser.destroy()
@@ -7272,7 +7264,7 @@ class PlaylistWindow(Gtk.Window):
         dest_dir = chooser.get_filename()
         chooser.destroy()
 
-        self.status_label.set_text(f"Copiando {len(track_ids)} canciones al PC…")
+        self.status_label.set_text(_f("Copiando {} canciones al PC…", len(track_ids)))
 
         def worker():
             import shutil
@@ -7280,7 +7272,7 @@ class PlaylistWindow(Gtk.Window):
             
             def sanitize(name):
                 # Limpiar caracteres no válidos para nombres de archivo
-                if not name: return "Desconocido"
+                if not name: return _("Desconocido")
                 return re.sub(r'[\\/*?:"<>|]', "_", name).strip()
 
             copiados = 0
@@ -7305,9 +7297,9 @@ class PlaylistWindow(Gtk.Window):
                     continue
 
                 # Extraer metadatos para crear las carpetas
-                artist = sanitize(track.get("artist", "Artista Desconocido"))
-                album = sanitize(track.get("album", "Álbum Desconocido"))
-                title = sanitize(track.get("title", "Pista"))
+                artist = sanitize(track.get("artist", _("Artista Desconocido")))
+                album = sanitize(track.get("album", _("Álbum Desconocido")))
+                title = sanitize(track.get("title", _("Pista")))
                 
                 # Obtener extensión del archivo original
                 ext = os.path.splitext(full_ipod_path)[1]
@@ -7474,7 +7466,7 @@ class PlaylistWindow(Gtk.Window):
             return
         dialog.destroy()
 
-        self.status_label.set_text(f"Convirtiendo {len(incompatible)} archivos a ALAC…")
+        self.status_label.set_text(_f("Convirtiendo {} archivos a ALAC…", len(incompatible)))
 
         cache_dir = os.path.expanduser("~/.cache/tunepod/converted")
         os.makedirs(cache_dir, exist_ok=True)
@@ -7524,9 +7516,9 @@ class PlaylistWindow(Gtk.Window):
                 raw_title = track.get("title", "").strip()
                 
                 # Usamos el nombre tal cual, solo cambiando las barras
-                artist = sanitize(raw_artist if raw_artist else "Artista Desconocido")
-                album = sanitize(raw_album if raw_album else "Álbum Desconocido")
-                title = sanitize(raw_title if raw_title else "Pista")
+                artist = sanitize(raw_artist if raw_artist else _("Artista Desconocido"))
+                album = sanitize(raw_album if raw_album else _("Álbum Desconocido"))
+                title = sanitize(raw_title if raw_title else _("Pista"))
                 
                 ext = os.path.splitext(full_ipod_path)[1] or ".mp3"
 
@@ -7664,7 +7656,7 @@ class PlaylistWindow(Gtk.Window):
         matched, _ = ipod_sync.match_tracks(local_tracks, ipod_tracks)
         
         updated = self._sync_ipod_stats_to_pc(matched)
-        self.status_label.set_text(f"Sincronizadas {updated} estadísticas (estrellas y reproducciones).")
+        self.status_label.set_text(_f("Sincronizadas {} estadísticas (estrellas y reproducciones).", updated))
 
     def _sync_ipod_stats_to_pc(self, matched):
         """Actualiza el store del PC con los datos del iPod."""
@@ -7977,24 +7969,24 @@ class PlaylistWindow(Gtk.Window):
                         src_db = os.path.join(self.ipod_mount, "iPod_Control", "iTunes", "iTunesDB")
                         shutil.copy2(src_db, os.path.join(backup_dir, f"iTunesDB-antes-global-{stamp}"))
                     except Exception as e:
-                        GLib.idle_add(self.status_label.set_text, f"Error backup: {e}")
+                        GLib.idle_add(self.status_label.set_text, _f("Error backup: {}", e))
                         return
 
                 # 1. Borrar
                 if to_delete_tracks:
                     delete_ids = [int(t["id"]) for t in to_delete_tracks]
-                    GLib.idle_add(self.status_label.set_text, f"Eliminando {len(delete_ids)} pistas del iPod…")
+                    GLib.idle_add(self.status_label.set_text, _f("Eliminando {} pistas del iPod…", len(delete_ids)))
                     out, err = ipod_write.delete_tracks(self.ipod_mount, delete_ids)
                     try: os.sync()
                     except: pass
                     
                     if err:
-                        GLib.idle_add(self.status_label.set_text, f"Error al borrar: {err[:200]}")
+                        GLib.idle_add(self.status_label.set_text, _f("Error al borrar: {}", err[:200]))
                         return
                     
                 # 2. Copiar música nueva
                 if new_unmatched_pc:
-                    GLib.idle_add(self.status_label.set_text, f"Sincronizando {len(new_unmatched_pc)} pistas…")
+                    GLib.idle_add(self.status_label.set_text, _f("Sincronizando {} pistas…", len(new_unmatched_pc)))
                     # Mapa para obtener el start_time_ms
                     store_by_uri = {row[COL_URI]: row for row in self.store}
                     tracks_to_copy = []
@@ -8015,7 +8007,7 @@ class PlaylistWindow(Gtk.Window):
                         except: pass
                         
                         if cerr:
-                            GLib.idle_add(self.status_label.set_text, f"Error al copiar: {cerr[:200]}")
+                            GLib.idle_add(self.status_label.set_text, _f("Error al copiar: {}", cerr[:200]))
                             return
 
                 # 3. Copiar podcasts nuevos
@@ -8072,12 +8064,12 @@ class PlaylistWindow(Gtk.Window):
             transient_for=self, modal=True,
             message_type=Gtk.MessageType.WARNING,
             buttons=Gtk.ButtonsType.YES_NO,
-            text=f"¿Eliminar {len(uris)} canción(es) de la biblioteca?"
+            text=_f("¿Eliminar {} canción(es) de la biblioteca?", len(uris))
         )
         dialog.format_secondary_text(
-            "Las canciones desaparecerán de la biblioteca y de todas las listas.\n"
-            "Los archivos de audio se enviarán a la papelera del sistema, "
-            "por lo que podrás recuperarlos si te equivocas."
+            _("Las canciones desaparecerán de la biblioteca y de todas las listas.\n"
+              "Los archivos de audio se enviarán a la papelera del sistema, "
+              "por lo que podrás recuperarlos si te equivocas.")
         )
         dialog.set_default_response(Gtk.ResponseType.NO)
         response = dialog.run()
@@ -8121,12 +8113,12 @@ class PlaylistWindow(Gtk.Window):
                 transient_for=self, modal=True,
                 message_type=Gtk.MessageType.WARNING,
                 buttons=Gtk.ButtonsType.YES_NO,
-                text=f"{len(failed)} archivo(s) no se pudieron mover a la papelera"
+                text=_f("{} archivo(s) no se pudieron mover a la papelera", len(failed))
             )
             msg.format_secondary_text(
-                "¿Eliminarlos PERMANENTEMENTE del disco?\n\n"
-                "Si eliges 'No', desaparecerán de la biblioteca de la aplicación "
-                "pero los archivos seguirán existiendo en el disco."
+                _("¿Eliminarlos PERMANENTEMENTE del disco?\n\n"
+                  "Si eliges 'No', desaparecerán de la biblioteca de la aplicación "
+                  "pero los archivos seguirán existiendo en el disco.")
             )
             msg.set_default_response(Gtk.ResponseType.NO)
             delete_perm = msg.run() == Gtk.ResponseType.YES
@@ -8179,11 +8171,11 @@ class PlaylistWindow(Gtk.Window):
         self._apply_filters()
         self._rebuild_playlists_listbox(select_id=self.current_playlist_id)
 
-        parts = [f"{moved} canción(es) eliminada(s) de la biblioteca"]
+        parts = [_f("{} canción(es) eliminada(s) de la biblioteca", moved)]
         if failed and permanently_deleted == 0:
-            parts.append(f"{len(failed)} archivo(s) siguen en disco")
+            parts.append(_f("{} archivo(s) siguen en disco", len(failed)))
         elif permanently_deleted > 0:
-            parts.append(f"{permanently_deleted} archivo(s) eliminados permanentemente")
+            parts.append(_f("{} archivo(s) eliminados permanentemente", permanently_deleted))
         self.status_label.set_text(". ".join(parts) + ".")
 
     def on_send_podcast_to_ipod(self, btn):
@@ -8402,7 +8394,7 @@ class PlaylistWindow(Gtk.Window):
         dialog = Gtk.Dialog(title=_('Sincronización selectiva al iPod'),
                             transient_for=self, modal=True)
         dialog.set_default_size(750, 650)
-        dialog.add_buttons("Cancelar", Gtk.ResponseType.CANCEL,
+        dialog.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL,
                            _("Sincronizar selección"), Gtk.ResponseType.OK)
 
         area = dialog.get_content_area()
@@ -8418,8 +8410,8 @@ class PlaylistWindow(Gtk.Window):
         music_store = Gtk.TreeStore(bool, str, str, str)
         groups = {}
         for row in self.store:
-            artist = row[COL_ARTIST] or "(Sin artista)"
-            album = row[COL_ALBUM] or "(Sin álbum)"
+            artist = row[COL_ARTIST] or _("(Sin artista)")
+            album = row[COL_ALBUM] or _("(Sin álbum)")
             groups.setdefault(artist, {}).setdefault(album, []).append(row)
         for artist in sorted(groups.keys(), key=sort_key_artist):
             artist_iter = music_store.append(None, [False, artist, "", "artist"])
@@ -8556,8 +8548,7 @@ class PlaylistWindow(Gtk.Window):
                     space_bar.set_fraction(frac)
                     if sel_gb > free_gb:
                         space_lbl.set_markup(
-                            f"<span foreground='red'><b>¡No cabe!</b> "
-                            f"Se necesitan {sel_gb:.2f} GB, hay {free_gb:.2f} GB libres.</span>")
+                            _f("<span foreground='red'><b>¡No cabe!</b> Se necesitan {} GB, hay {} GB libres.</span>", f"{sel_gb:.2f}", f"{free_gb:.2f}"))
                     else:
                         space_lbl.set_text(
                             _f("iPod: {} GB usados / {} GB libres. ", f"{used_gb:.2f}", f"{free_gb:.2f}") +
@@ -8741,14 +8732,14 @@ class PlaylistWindow(Gtk.Window):
                     pass
                 if err:
                     GLib.idle_add(self.status_label.set_text,
-                                  f"Error Sincronizando al iPod: {err[:150]}")
+                                  _f("Error Sincronizando al iPod: {}", err[:150]))
                     return
 
             # Releer iPod para obtener la lista actualizada de pistas
             data_now, rerr = ipod.read_ipod(mount)
             if rerr:
                 GLib.idle_add(self.status_label.set_text,
-                              f"Error releyendo iPod: {rerr[:150]}")
+                              _f("Error releyendo iPod: {}", rerr[:150]))
                 return
             ipod_tracks_now = data_now.get("tracks", [])
 
@@ -8766,7 +8757,7 @@ class PlaylistWindow(Gtk.Window):
 
             if to_delete_pods:
                 GLib.idle_add(self.status_label.set_text,
-                              f"Eliminando {len(to_delete_pods)} episodios antiguos de podcasts…")
+                              _f("Eliminando {} episodios antiguos de podcasts…", len(to_delete_pods)))
                 out, err = ipod_write.delete_tracks(mount, to_delete_pods)
                 try:
                     os.sync()
@@ -8774,7 +8765,7 @@ class PlaylistWindow(Gtk.Window):
                     pass
                 if err:
                     GLib.idle_add(self.status_label.set_text,
-                                  f"Error eliminando podcasts: {err[:150]}")
+                                  _f("Error eliminando podcasts: {}", err[:150]))
                     return
 
             if pod_episodes:
@@ -8809,7 +8800,7 @@ class PlaylistWindow(Gtk.Window):
             data, rerr = ipod.read_ipod(mount)
             if rerr:
                 GLib.idle_add(self.status_label.set_text,
-                              f"Copia hecha, pero falló releer: {rerr}")
+                              _f("Copia hecha, pero falló releer: {}", rerr))
                 return
 
             ipod_tracks = data.get("tracks", [])
@@ -8889,13 +8880,13 @@ class PlaylistWindow(Gtk.Window):
     def _send_to_ipod_continue(self, matched, unmatched):
         if not unmatched:
             self.status_label.set_text(
-                f"Las {len(matched)} canciones seleccionadas ya están en el iPod")
+                _f("Las {} canciones seleccionadas ya están en el iPod", len(matched)))
             return
 
         def after_convert(new_unmatched):
             if not new_unmatched:
                 self.status_label.set_text(
-                    f"Las {len(matched)} canciones ya están en el iPod")
+                    _f("Las {} canciones ya están en el iPod", len(matched)))
                 return
             self._send_to_ipod_copy(matched, new_unmatched)
 
@@ -8928,19 +8919,19 @@ class PlaylistWindow(Gtk.Window):
             ok, out, err = ipod_copy.copy_tracks(
                 mount, tracks_to_copy, dry_run=False,
                 progress_callback=lambda line: GLib.idle_add(
-                    self.status_label.set_text, f"Enviando: {line}"))
+                    self.status_label.set_text, _f("Enviando: {}", line)))
             try:
                 os.sync()
             except Exception:
                 pass
             if err:
                 GLib.idle_add(self.status_label.set_text,
-                              f"Error al enviar al iPod: {err[:200]}")
+                              _f("Error al enviar al iPod: {}", err[:200]))
                 return
             data, rerr = ipod.read_ipod(mount)
             if rerr:
                 GLib.idle_add(self.status_label.set_text,
-                              f"Copiado, pero falló releer el iPod: {rerr}")
+                              _f("Copiado, pero falló releer el iPod: {}", rerr))
                 return
             GLib.idle_add(self._on_ipod_read, mount, data, None)
             GLib.idle_add(

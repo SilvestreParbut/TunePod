@@ -3,27 +3,31 @@
  "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
  "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
 <policyconfig>
-  <vendor>iPodSuite</vendor>
+  <vendor>TunePod</vendor>
 
   <action id="org.tunepod.restore">
-    <description>Restaurar firmware de iPod</description>
-    <message>Se requieren privilegios de administrador para formatear y restaurar el iPod.</message>
+    <description>Restore iPod firmware</description>
+    <description xml:lang="es">Restaurar firmware de iPod</description>
+    <message>Administrator privileges are required to format and restore the iPod.</message>
+    <message xml:lang="es">Se requieren privilegios de administrador para formatear y restaurar el iPod.</message>
     <defaults>
       <allow_any>auth_admin</allow_any>
       <allow_inactive>auth_admin</allow_inactive>
       <allow_active>auth_admin</allow_active>
     </defaults>
-    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/ipodsuite/ipod_restore_helper.sh</annotate>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/tunepod/ipod_restore_helper.sh</annotate>
   </action>
 
   <action id="org.tunepod.eject">
-    <description>Expulsar iPod</description>
-    <message>Se requieren privilegios de administrador para apagar el dispositivo USB.</message>
+    <description>Eject iPod</description>
+    <description xml:lang="es">Expulsar iPod</description>
+    <message>Administrator privileges are required to power off the USB device.</message>
+    <message xml:lang="es">Se requieren privilegios de administrador para apagar el dispositivo USB.</message>
     <defaults>
       <allow_any>auth_admin</allow_any>
       <allow_inactive>auth_admin</allow_inactive>
       <allow_active>auth_admin</allow_active>
     </defaults>
-    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/ipodsuite/ipod_eject_helper.sh</annotate>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/tunepod/ipod_eject_helper.sh</annotate>
   </action>
 </policyconfig>
