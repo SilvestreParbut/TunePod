@@ -38,7 +38,7 @@ import ipod
 import ipod_write
 import ipod_sync
 import ipod_copy
-APP_VERSION = "1.0.9"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
+APP_VERSION = "1.1.0"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
 Gst.init(None)
 try:
     Notify.init("TunePod")
@@ -48,7 +48,7 @@ GLib.set_prgname("tunepod")
 GLib.set_application_name("TunePod")
 
 AUDIO_EXT = (".mp3", ".m4a", ".flac", ".ogg", ".wav")
-LYRICS_DEFAULT = "Reproduce una canción para ver su letra aquí."
+LYRICS_DEFAULT = _("Reproduce una canción para ver su letra aquí.")
 TRACK_NUM_RE = re.compile(r"^(\d{1,3})\s*[-._\s]")
 PODCAST_DIR = os.path.expanduser("~/Podcasts")
 SOCKET_PATH = "/tmp/tunepod.sock"
@@ -1109,7 +1109,7 @@ class PlaylistWindow(Gtk.Window):
         """Muestra la ventana Acerca de."""
         dialog = Gtk.AboutDialog(transient_for=self, modal=True)
         dialog.set_program_name("TunePod")
-        dialog.set_version("1.0.9") # <-- Puedes cambiar esto con cada release
+        dialog.set_version("1.1.0") # <-- Puedes cambiar esto con cada release
         dialog.set_comments(_("Reproductor de música y gestor de iPod para Linux"))
         dialog.set_license_type(Gtk.License.GPL_3_0)
         dialog.set_website("https://github.com/SilvestreParbut/TunePod")
@@ -3008,8 +3008,8 @@ class PlaylistWindow(Gtk.Window):
             title=_('Nueva lista de reproducción'),
             transient_for=self, modal=True,
         )
-        dialog.add_buttons("Cancelar", Gtk.ResponseType.CANCEL,
-                           "Crear", Gtk.ResponseType.OK)
+        dialog.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL,
+                           _("Crear"), Gtk.ResponseType.OK)
         box = dialog.get_content_area()
         box.set_spacing(8)
         box.set_border_width(10)
@@ -4269,14 +4269,16 @@ class PlaylistWindow(Gtk.Window):
             title=_('Añadir a lista'),
             transient_for=self, modal=True,
         )
-        dialog.add_buttons("Cancelar", Gtk.ResponseType.CANCEL,
-                           "Añadir", Gtk.ResponseType.OK)
+        # AÑADIR _() A LOS BOTONES
+        dialog.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL,
+                           _("Añadir"), Gtk.ResponseType.OK)
         dialog.set_default_size(400, -1)
         box = dialog.get_content_area()
         box.set_spacing(8)
         box.set_border_width(10)
 
-        lbl = Gtk.Label(label=f"Canción: {title}" if title else "Canción actual")
+        # TRADUCIR LA ETIQUETA
+        lbl = Gtk.Label(label=_f("Canción: {}", title) if title else _("Canción actual"))
         lbl.set_halign(Gtk.Align.START)
         lbl.set_ellipsize(Pango.EllipsizeMode.END)
         box.pack_start(lbl, False, False, 0)
@@ -4349,15 +4351,17 @@ class PlaylistWindow(Gtk.Window):
             title=_('Añadir a lista'),
             transient_for=self, modal=True,
         )
-        dialog.add_buttons("Cancelar", Gtk.ResponseType.CANCEL,
-                           "Añadir", Gtk.ResponseType.OK)
+        # AÑADIR _() A LOS BOTONES
+        dialog.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL,
+                           _("Añadir"), Gtk.ResponseType.OK)
         dialog.set_default_size(420, -1)
         box = dialog.get_content_area()
         box.set_spacing(8)
         box.set_border_width(10)
 
+        # TRADUCIR LA ETIQUETA
         label = Gtk.Label(
-            label=f"{len(uris)} canción(es) → ¿a qué lista?")
+            label=_f("{} canción(es) → ¿a qué lista?", len(uris)))
         label.set_halign(Gtk.Align.START)
         box.pack_start(label, False, False, 0)
 
@@ -4856,7 +4860,10 @@ class PlaylistWindow(Gtk.Window):
         if not artist or not title:
             buf.set_text(_('Esta pista no tiene artista o título; no se puede buscar la letra.'))
             return
-        buf.set_text(f"Buscando letra para {artist} — {title}…")
+        
+        # TRADUCIR EL MENSAJE DE BÚSQUEDA
+        buf.set_text(_f("Buscando letra para {} — {}…", artist, title))
+        
         def worker():
             text, err = get_lyrics(artist, title)
             GLib.idle_add(finish, text, err)
@@ -5309,6 +5316,11 @@ class PlaylistWindow(Gtk.Window):
 
         self.playbin.set_state(Gst.State.NULL)
         self.playbin.set_property("uri", uri)
+
+        # NUEVO: leer start_time_ms de la pista y encolar el seek
+        start_ms = int(self.store.get_value(it, COL_START_TIME))
+        self._pending_seek_ms = start_ms
+
         self.playbin.set_state(Gst.State.PLAYING)
         self._set_play_icon(True)
         self._update_mpris_status("Playing")
@@ -5486,6 +5498,23 @@ class PlaylistWindow(Gtk.Window):
             err, debug = msg.parse_error()
             print(f"ERROR GStreamer: {err.message}\n{debug}")
             self.playbin.set_state(Gst.State.NULL)
+        elif t == Gst.MessageType.ASYNC_DONE:
+            if self._pending_seek_ms > 0:
+                pos_ns = self._pending_seek_ms * Gst.MSECOND
+                try:
+                    ok = self.playbin.seek_simple(
+                        Gst.Format.TIME,
+                        Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT,
+                        pos_ns)
+                    if ok:
+                        print(f"[playback] Saltando introducción: "
+                            f"{self._pending_seek_ms} ms")
+                    else:
+                        print(f"[playback] No se pudo saltar introducción "
+                            f"({self._pending_seek_ms} ms)")
+                except Exception as e:
+                    print(f"[playback] Error al saltar introducción: {e}")
+                self._pending_seek_ms = 0
         elif t == Gst.MessageType.DURATION_CHANGED:
             ok, dur = self.playbin.query_duration(Gst.Format.TIME)
             if ok and dur > 0:
@@ -5926,6 +5955,7 @@ class PlaylistWindow(Gtk.Window):
 
         # Cambio de stream: GStreamer maneja la transición internamente.
         # No hace falta esperar; set_state es asíncrono.
+        self._pending_seek_ms = 0
         self.playbin.set_state(Gst.State.NULL)
         self.playbin.set_property("uri", audio_url)
         self.playbin.set_state(Gst.State.PLAYING)
@@ -6394,7 +6424,7 @@ class PlaylistWindow(Gtk.Window):
         # Si no hay iPod montado (disco en blanco), mostrar ventana de selección manual
         if not block_device or not model_id:
             dialog = Gtk.Dialog(title=_('Restauración Manual de iPod'), transient_for=self, modal=True)
-            dialog.add_buttons("Cancelar", Gtk.ResponseType.CANCEL, "Continuar", Gtk.ResponseType.OK)
+            dialog.add_buttons(_("Cancelar"), Gtk.ResponseType.CANCEL, _("Continuar"), Gtk.ResponseType.OK)
             box = dialog.get_content_area()
             box.set_spacing(10)
             box.set_border_width(15)
@@ -7100,6 +7130,7 @@ class PlaylistWindow(Gtk.Window):
         ).start()
 
         # 6. ¡A reproducir!
+        self._pending_seek_ms = 0
         self.playbin.set_state(Gst.State.NULL)
         self.playbin.set_property("uri", uri)
         self.playbin.set_state(Gst.State.PLAYING)
@@ -8148,6 +8179,7 @@ class PlaylistWindow(Gtk.Window):
             self.current_uri = None
             self.current_index = -1
             self._last_play_counted_uri = None
+            self._pending_seek_ms = 0
             self.progress.set_value(0)
             self.pos_label.set_text("0:00")
             self.dur_label.set_text("0:00")

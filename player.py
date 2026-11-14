@@ -38,7 +38,7 @@ import ipod
 import ipod_write
 import ipod_sync
 import ipod_copy
-APP_VERSION = "1.0.9"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
+APP_VERSION = "1.1.0"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
 Gst.init(None)
 try:
     Notify.init("TunePod")
@@ -1109,7 +1109,7 @@ class PlaylistWindow(Gtk.Window):
         """Muestra la ventana Acerca de."""
         dialog = Gtk.AboutDialog(transient_for=self, modal=True)
         dialog.set_program_name("TunePod")
-        dialog.set_version("1.0.9") # <-- Puedes cambiar esto con cada release
+        dialog.set_version("1.1.0") # <-- Puedes cambiar esto con cada release
         dialog.set_comments(_("Reproductor de música y gestor de iPod para Linux"))
         dialog.set_license_type(Gtk.License.GPL_3_0)
         dialog.set_website("https://github.com/SilvestreParbut/TunePod")
@@ -5316,6 +5316,11 @@ class PlaylistWindow(Gtk.Window):
 
         self.playbin.set_state(Gst.State.NULL)
         self.playbin.set_property("uri", uri)
+
+        # NUEVO: leer start_time_ms de la pista y encolar el seek
+        start_ms = int(self.store.get_value(it, COL_START_TIME))
+        self._pending_seek_ms = start_ms
+
         self.playbin.set_state(Gst.State.PLAYING)
         self._set_play_icon(True)
         self._update_mpris_status("Playing")
@@ -5493,6 +5498,23 @@ class PlaylistWindow(Gtk.Window):
             err, debug = msg.parse_error()
             print(f"ERROR GStreamer: {err.message}\n{debug}")
             self.playbin.set_state(Gst.State.NULL)
+        elif t == Gst.MessageType.ASYNC_DONE:
+            if self._pending_seek_ms > 0:
+                pos_ns = self._pending_seek_ms * Gst.MSECOND
+                try:
+                    ok = self.playbin.seek_simple(
+                        Gst.Format.TIME,
+                        Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT,
+                        pos_ns)
+                    if ok:
+                        print(f"[playback] Saltando introducción: "
+                            f"{self._pending_seek_ms} ms")
+                    else:
+                        print(f"[playback] No se pudo saltar introducción "
+                            f"({self._pending_seek_ms} ms)")
+                except Exception as e:
+                    print(f"[playback] Error al saltar introducción: {e}")
+                self._pending_seek_ms = 0
         elif t == Gst.MessageType.DURATION_CHANGED:
             ok, dur = self.playbin.query_duration(Gst.Format.TIME)
             if ok and dur > 0:
@@ -5933,6 +5955,7 @@ class PlaylistWindow(Gtk.Window):
 
         # Cambio de stream: GStreamer maneja la transición internamente.
         # No hace falta esperar; set_state es asíncrono.
+        self._pending_seek_ms = 0
         self.playbin.set_state(Gst.State.NULL)
         self.playbin.set_property("uri", audio_url)
         self.playbin.set_state(Gst.State.PLAYING)
@@ -7107,6 +7130,7 @@ class PlaylistWindow(Gtk.Window):
         ).start()
 
         # 6. ¡A reproducir!
+        self._pending_seek_ms = 0
         self.playbin.set_state(Gst.State.NULL)
         self.playbin.set_property("uri", uri)
         self.playbin.set_state(Gst.State.PLAYING)
@@ -8155,6 +8179,7 @@ class PlaylistWindow(Gtk.Window):
             self.current_uri = None
             self.current_index = -1
             self._last_play_counted_uri = None
+            self._pending_seek_ms = 0
             self.progress.set_value(0)
             self.pos_label.set_text("0:00")
             self.dur_label.set_text("0:00")
