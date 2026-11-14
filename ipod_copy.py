@@ -190,13 +190,19 @@ def copy_tracks(mount, tracks, dry_run=False, progress_callback=None):
         )
         
         stdout_lines = []
+        song_count = 0
+        total_songs = len(tracks)
         for line in process.stdout:
             stdout_lines.append(line)
             if progress_callback and "→" in line:
-                # Extraer solo el nombre de la canción para que se vea bonito
-                # La línea es algo como: "  → «Artista» — «Título» [mp3]"
-                clean_line = line.strip().replace("  → ", "")
-                progress_callback(clean_line)
+                song_count += 1
+                clean_line = line.strip().replace("→", "").strip()
+                if total_songs > 0:
+                    pct = int(song_count * 100 / total_songs)
+                else:
+                    pct = 0
+                progress_callback(
+                    f"[{song_count}/{total_songs}] {pct}% {clean_line}")
                 
         process.wait()
         stderr_lines = process.stderr.read()
