@@ -435,6 +435,7 @@ int main(int argc, char *argv[]) {
 
     Itdb_iTunesDB *db = itdb_parse(mount, NULL);
     if (!db) { fprintf(stderr, "error: no se pudo leer iTunesDB en %s\n", mount); return 2; }
+    db->version = 0x0b; /* Forzar versión que soporta starttime */
 
     int rc = 0;
     if (strcmp(cmd, "--list-playlists") == 0) rc = do_list_playlists(db);

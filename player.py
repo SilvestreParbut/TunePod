@@ -38,7 +38,7 @@ import ipod
 import ipod_write
 import ipod_sync
 import ipod_copy
-APP_VERSION = "1.1.0"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
+APP_VERSION = "1.1.1"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
 Gst.init(None)
 try:
     Notify.init("TunePod")
@@ -1109,7 +1109,7 @@ class PlaylistWindow(Gtk.Window):
         """Muestra la ventana Acerca de."""
         dialog = Gtk.AboutDialog(transient_for=self, modal=True)
         dialog.set_program_name("TunePod")
-        dialog.set_version("1.1.0") # <-- Puedes cambiar esto con cada release
+        dialog.set_version("1.1.1") # <-- Puedes cambiar esto con cada release
         dialog.set_comments(_("Reproductor de música y gestor de iPod para Linux"))
         dialog.set_license_type(Gtk.License.GPL_3_0)
         dialog.set_website("https://github.com/SilvestreParbut/TunePod")
@@ -2694,11 +2694,43 @@ class PlaylistWindow(Gtk.Window):
                 self.status_label.set_text(f"Error backup: {e}. Abortando.")
                 return
 
-        # Crear un mapa para obtener el start_time_ms desde la biblioteca
         store_by_uri = {row[COL_URI]: row for row in self.store}
+        ipod_tracks = self.ipod_data.get("tracks", [])
+        ipod_tracks_by_id = {t["id"]: t for t in ipod_tracks}
+
+        # Detectar canciones de la playlist con start_time distinto en el iPod
+        start_time_diff_ids = set()
+        start_time_diff_uris = set()
+        for uri, ipod_id in matched_before:
+            row = store_by_uri.get(uri)
+            if row is None:
+                continue
+            ipod_track = ipod_tracks_by_id.get(ipod_id)
+            if ipod_track is None:
+                continue
+            pc_start = int(row[COL_START_TIME])
+            ipod_start = int(ipod_track.get("start_time_ms", 0) or 0)
+            if pc_start != ipod_start:
+                start_time_diff_ids.add(ipod_id)
+                start_time_diff_uris.add(uri)
+
+        # Todas las canciones a copiar: unmatched + las de start_time distinto
+        all_to_copy = list(unmatched)
+        unmatched_uris = {lt["uri"] for lt in all_to_copy}
+        for uri in start_time_diff_uris:
+            if uri not in unmatched_uris:
+                row = store_by_uri.get(uri)
+                if row is not None:
+                    all_to_copy.append({
+                        "uri": uri,
+                        "title": row[COL_TITLE] or "",
+                        "artist": row[COL_ARTIST] or "",
+                        "album": row[COL_ALBUM] or "",
+                        "duration_str": row[COL_DURATION] or "",
+                    })
 
         tracks_to_copy = []
-        for lt in unmatched:
+        for lt in all_to_copy:
             uri = lt["uri"]
             if uri.lower().endswith((".flac", ".ogg", ".wma")):
                 try:
@@ -2711,7 +2743,6 @@ class PlaylistWindow(Gtk.Window):
                 except Exception:
                     continue
 
-            # Obtener el start_time_ms del store (0 si no existe)
             row = store_by_uri.get(lt["uri"])
             start_ms = int(row[COL_START_TIME]) if row else 0
 
@@ -2733,12 +2764,27 @@ class PlaylistWindow(Gtk.Window):
             _f("Sincronizando {} canciones al iPod…", len(tracks_to_copy)))
 
         def worker():
+            # Borrar primero las que tienen start_time distinto (para re-copiarlas)
+            if start_time_diff_ids:
+                GLib.idle_add(self.status_label.set_text,
+                              f"Eliminando {len(start_time_diff_ids)} canciones antiguas…")
+                out_del, err_del = ipod_write.delete_tracks(
+                    mount, list(start_time_diff_ids))
+                try:
+                    os.sync()
+                except Exception:
+                    pass
+                if err_del:
+                    GLib.idle_add(self.status_label.set_text,
+                                  f"Error al borrar: {err_del[:150]}")
+                    return
+
             ok, out, err = ipod_copy.copy_tracks(
                 mount, tracks_to_copy, dry_run=False,
                 progress_callback=lambda line: GLib.idle_add(
                     self.status_label.set_text, f"Sincronizando: {line}"))
             GLib.idle_add(
-                self._on_copy_done, playlist, matched_before, out, err, stamp)
+                self._on_copy_done, playlist, [], out, err, stamp)
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -2814,13 +2860,45 @@ class PlaylistWindow(Gtk.Window):
         return False
 
     def _do_sync_playlist(self, playlist, matched, backup_stamp=None):
-        """Ejecuta la sincronización real: backup (si no hay uno ya) + write."""
+        """Sincroniza la playlist y actualiza start_time_ms de las canciones
+        con valor distinto entre PC e iPod (usando update_metadata, que ya
+        funciona desde que forzamos 0x0b en ipod_write.c)."""
         import shutil
         import datetime
 
         mount = self.ipod_mount
         name = playlist["name"]
         track_ids = [tid for (_uri, tid) in matched]
+
+        # Detectar canciones con start_time distinto
+        store_by_uri = {row[COL_URI]: row for row in self.store}
+        ipod_tracks_by_id = {}
+        if self.ipod_data:
+            for t in self.ipod_data.get("tracks", []):
+                ipod_tracks_by_id[t["id"]] = t
+        start_time_updates = []
+        for uri, ipod_id in matched:
+            row = store_by_uri.get(uri)
+            if row is None:
+                continue
+            ipod_track = ipod_tracks_by_id.get(ipod_id)
+            if ipod_track is None:
+                continue
+            pc_start = int(row[COL_START_TIME])
+            ipod_start = int(ipod_track.get("start_time_ms", 0) or 0)
+            if pc_start != ipod_start:
+                start_time_updates.append({
+                    "id": ipod_id,
+                    "title": row[COL_TITLE] or "",
+                    "artist": row[COL_ARTIST] or "",
+                    "album": row[COL_ALBUM] or "",
+                    "albumartist": row[COL_ALBUMARTIST] or "",
+                    "genre": row[COL_GENRE] or "",
+                    "track_nr": int(row[COL_TRACK_NUM]),
+                    "cd_nr": int(row[COL_CD_NUM]),
+                    "year": int(row[COL_YEAR]),
+                    "start_time_ms": pc_start,
+                })
 
         # Backup automático solo si no se hizo ya
         if backup_stamp is None:
@@ -2855,6 +2933,32 @@ class PlaylistWindow(Gtk.Window):
                 os.sync()
             except Exception:
                 pass
+            if err:
+                GLib.idle_add(self.status_label.set_text,
+                              f"Error al sincronizar playlist: {err[:200]}")
+                return
+
+            if start_time_updates:
+                GLib.idle_add(self.status_label.set_text,
+                              f"Actualizando inicio en {len(start_time_updates)} canciones…")
+                out2, err2 = ipod_write.update_metadata(mount, start_time_updates)
+                try:
+                    os.sync()
+                except Exception:
+                    pass
+                if err2:
+                    GLib.idle_add(self.status_label.set_text,
+                                  f"Playlist OK, pero error en inicio: {err2[:150]}")
+                else:
+                    GLib.idle_add(self.status_label.set_text,
+                                  f"Playlist e inicio actualizados ({len(start_time_updates)} canciones)")
+
+            data, rerr = ipod.read_ipod(mount)
+            if rerr:
+                GLib.idle_add(self.status_label.set_text,
+                              f"Sincronizado, pero falló releer: {rerr}")
+                return
+            GLib.idle_add(self._on_ipod_read, mount, data, None)
             GLib.idle_add(self._on_sync_done, playlist, len(track_ids),
                           out, err, stamp)
 
@@ -7130,7 +7234,7 @@ class PlaylistWindow(Gtk.Window):
         ).start()
 
         # 6. ¡A reproducir!
-        self._pending_seek_ms = 0
+        self._pending_seek_ms = int(track_data.get("start_time_ms", 0) or 0)
         self.playbin.set_state(Gst.State.NULL)
         self.playbin.set_property("uri", uri)
         self.playbin.set_state(Gst.State.PLAYING)
@@ -7698,43 +7802,6 @@ class PlaylistWindow(Gtk.Window):
         self.status_label.set_text(f"Sincronizadas {updated} estadísticas (estrellas y reproducciones).")
 
     def _sync_ipod_stats_to_pc(self, matched):
-        """Actualiza el store del PC con los datos del iPod."""
-        ipod_tracks_by_id = {t["id"]: t for t in self.ipod_data.get("tracks", [])}
-        
-        store_iters = {}
-        it = self.store.get_iter_first()
-        while it is not None:
-            uri = self.store.get_value(it, COL_URI)
-            store_iters[uri] = it
-            it = self.store.iter_next(it)
-            
-        updated = 0
-        for uri, ipod_id in matched:
-            if ipod_id not in ipod_tracks_by_id or uri not in store_iters:
-                continue
-            
-            ipod_track = ipod_tracks_by_id[ipod_id]
-            it = store_iters[uri]
-            
-            pc_play = int(self.store.get_value(it, COL_PLAY_COUNT))
-            ipod_play = int(ipod_track.get("playcount", 0))
-            if ipod_play > pc_play:
-                self.store.set_value(it, COL_PLAY_COUNT, ipod_play)
-                updated += 1
-            
-            pc_rating = int(self.store.get_value(it, COL_RATING))
-            ipod_rating = ipod.rating_to_stars(ipod_track.get("rating", 0))
-            if ipod_rating != pc_rating:
-                self.store.set_value(it, COL_RATING, ipod_rating)
-                updated += 1
-        
-        if updated > 0:
-            self._save_library()
-            self._apply_filters()
-            
-        return updated
-
-    def _sync_ipod_stats_to_pc(self, matched):
         """Actualiza el store del PC con estrellas y reproducciones del iPod.
         Devuelve cuántos campos se actualizaron."""
         ipod_tracks_by_id = {t["id"]: t for t in self.ipod_data.get("tracks", [])}
@@ -7773,6 +7840,61 @@ class PlaylistWindow(Gtk.Window):
             self._apply_filters()
             
         return updated
+
+    def _update_ipod_start_times(self, mount, matched, ipod_tracks, store_by_uri):
+        """Actualiza start_time_ms en el iPod para las canciones que ya
+        están sincronizadas pero tienen un valor distinto en la biblioteca
+        del escritorio.
+
+        start_time_ms NO es un tag ID3/Vorbis, así que no se puede
+        propagar con tags.write_tags(). Hay que escribir directamente en
+        la base de datos del iPod con ipod_write.update_metadata().
+
+        Enviamos el dict COMPLETO (no solo id + start_time_ms) para ser
+        compatibles con cualquier implementación de update_metadata que
+        sobrescriba todos los campos del registro con lo que recibe.
+        """
+        ipod_tracks_by_id = {t["id"]: t for t in ipod_tracks}
+        updates = []
+        for uri, ipod_id in matched:
+            row = store_by_uri.get(uri)
+            if row is None:
+                continue
+            ipod_track = ipod_tracks_by_id.get(ipod_id)
+            if ipod_track is None:
+                continue
+            pc_start = int(row[COL_START_TIME])
+            ipod_start = int(ipod_track.get("start_time_ms", 0))
+            if pc_start == ipod_start:
+                continue
+            updates.append({
+                "id": ipod_id,
+                "title": ipod_track.get("title", ""),
+                "artist": ipod_track.get("artist", ""),
+                "album": ipod_track.get("album", ""),
+                "albumartist": ipod_track.get("albumartist", ""),
+                "genre": ipod_track.get("genre", ""),
+                "track_nr": int(ipod_track.get("track_nr", 0)),
+                "cd_nr": int(ipod_track.get("cd_nr", 0)),
+                "year": int(ipod_track.get("year", 0)),
+                "start_time_ms": pc_start,
+            })
+        if not updates:
+            return 0
+        try:
+            out, err = ipod_write.update_metadata(mount, updates)
+        except Exception as e:
+            print(f"[start_time_sync] Exception: {e}")
+            return 0
+        try:
+            os.sync()
+        except Exception:
+            pass
+        if err:
+            print(f"[start_time_sync] Error: {err}")
+            return 0
+        return len(updates)
+
 
     def on_auto_sync_toggled(self, btn):
         self.prefs["auto_sync"] = btn.get_active()
@@ -7887,13 +8009,42 @@ class PlaylistWindow(Gtk.Window):
             ipod_pods_by_title = {t["title"]: t for t in ipod_pods if t.get("title") in expected_pod_titles}
             matched_pod_ids = set(int(t["id"]) for t in ipod_pods_by_title.values())
 
-            # 4. Calcular qué borrar (espejo real)
+            # 3.5 NUEVO: detectar canciones con start_time distinto entre PC e iPod
+            store_by_uri_diff = {row[COL_URI]: row for row in self.store}
+            ipod_tracks_by_id_diff = {t["id"]: t for t in ipod_tracks_all}
+            start_time_diff_ids = set()
+            start_time_diff_uris = set()
+            for uri, ipod_id in matched:
+                row = store_by_uri_diff.get(uri)
+                if row is None:
+                    continue
+                ipod_track = ipod_tracks_by_id_diff.get(ipod_id)
+                if ipod_track is None:
+                    continue
+                pc_start = int(row[COL_START_TIME])
+                ipod_start = int(ipod_track.get("start_time_ms", 0) or 0)
+                if pc_start != ipod_start:
+                    start_time_diff_ids.add(ipod_id)
+                    start_time_diff_uris.add(uri)
+
+            # 4. Calcular qué borrar (espejo real + start_time distinto)
             to_delete_tracks = []
             for t in ipod_tracks_all:
                 tid = int(t["id"])
+                if tid in start_time_diff_ids:
+                    to_delete_tracks.append(t)
+                    continue
                 if tid not in matched_ids and tid not in matched_pod_ids:
                     to_delete_tracks.append(t)
-                    
+
+            # 4.5 Las de start_time distinto se re-copian
+            if start_time_diff_uris:
+                local_tracks_by_uri = {lt["uri"]: lt for lt in local_tracks}
+                for uri in start_time_diff_uris:
+                    lt = local_tracks_by_uri.get(uri)
+                    if lt is not None and lt not in new_unmatched_pc:
+                        new_unmatched_pc.append(lt)
+
             # 5. Calcular qué podcasts copiar/actualizar
             pods_to_copy = [p for p in local_pods if p["title"] not in ipod_pods_by_title]
             pods_to_update = []
@@ -7905,6 +8056,8 @@ class PlaylistWindow(Gtk.Window):
                         # Calcular espacio necesario vs espacio libre
             total_bytes_needed = 0
             for lt in new_unmatched_pc:
+                if lt["uri"] in start_time_diff_uris:
+                    continue
                 try:
                     fname = GLib.filename_from_uri(lt["uri"])[0]
                     if os.path.exists(fname):
@@ -8179,7 +8332,7 @@ class PlaylistWindow(Gtk.Window):
             self.current_uri = None
             self.current_index = -1
             self._last_play_counted_uri = None
-            self._pending_seek_ms = 0
+            self._pending_seek_ms = int(track_data.get("start_time_ms", 0) or 0)
             self.progress.set_value(0)
             self.pos_label.set_text("0:00")
             self.dur_label.set_text("0:00")

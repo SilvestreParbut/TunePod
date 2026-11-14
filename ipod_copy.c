@@ -229,6 +229,8 @@ int main(int argc, char *argv[]) {
         g_object_unref(parser); return 2;
     }
 
+    db->version = 0x0b; /* Forzar versión que soporta starttime en iPod 4G */
+
     int total_ok = 0, total_err = 0;
     for (guint i = 0; i < n; i++) {
         JsonObject *obj = json_array_get_object_element(arr, i);
