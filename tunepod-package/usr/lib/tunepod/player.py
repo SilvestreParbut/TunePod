@@ -9282,4 +9282,5 @@ class PlaylistWindow(Gtk.Window):
 if __name__ == "__main__":
     w = PlaylistWindow()
     w.show_all()
+    w.maximize()
     Gtk.main()
