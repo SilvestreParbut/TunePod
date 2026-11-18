@@ -1,6 +1,16 @@
 import locale
+import os
 
 def get_language():
+    # Prioridad: LC_ALL > LC_MESSAGES > LANG (como hace gettext)
+    for var in ("LC_ALL", "LC_MESSAGES", "LANG"):
+        val = os.environ.get(var)
+        if val:
+            code = val.split(".")[0].split("_")[0].lower()
+            if code == "es":
+                return "es"
+            return "en"
+    # Fallback: locale del sistema
     try:
         lang = locale.getlocale()[0]
         if lang and lang.startswith("es"):
@@ -263,8 +273,8 @@ TRANSLATIONS = {
         "Repetir: desactivado": "Repeat: off",
         "Repetir: toda la lista": "Repeat: all",
         "Repetir: una canción": "Repeat: one",
-        "Aleatorio: activado": "Shuffle: on",
-        "Aleatorio: desactivado": "Shuffle: off",
+        "Aleatorio activado": "Shuffle on",
+        "Aleatorio desactivado": "Shuffle off",
         "No hay ninguna canción reproduciéndose": "No song is playing",
         "Solo desde la pestaña Biblioteca": "Only from the Library tab",
         "No tienes listas. Crea una primero con el botón +": "You have no playlists. Create one first with the + button",
@@ -384,6 +394,20 @@ TRANSLATIONS = {
         "↓ Mover abajo": "↓ Move down",
         "🔍 Buscar información en línea…": "🔍 Search info online...",
         "🖼️ Buscar carátula…": "🖼️ Search cover art...",
+        "Desconocida": "Unknown",
+        "Error al sincronizar playlist: {}": "Error syncing playlist: {}",
+        "«{}» sincronizada al iPod ({} pistas). Backup: {}": "«{}» synced to iPod ({} tracks). Backup: {}",
+        "Metadatos guardados, pero no se pudieron escribir los tags en: {}": "Metadata saved, but could not write tags to: {}",
+        "Álbum actualizado en {} canciones, pero falló en: {}": "Album updated on {} songs, but failed on: {}",
+
+        # === Faltantes detectadas en las capturas ===
+        "Mostrando todos los álbumes": "Showing all albums",
+        "iPod ({} canciones)": "iPod ({} songs)",
+        "El iPod se ha restaurado, pero su base de datos está vacía.\n¿Deseas inicializarlo ahora para poder añadir música?": "The iPod has been restored, but its database is empty.\nDo you want to initialize it now to add music?",
+
+        # === Faltantes de la vista de iPod y Artistas ===
+        "Mostrando todos los álbumes": "Showing all albums",
+        "({} canciones)": "({} songs)",
 
         # === Segunda pasada (f-strings y textos sueltos) ===
         "{} pistas": "{} tracks",
@@ -391,29 +415,15 @@ TRANSLATIONS = {
         "Lista «{}»: {}/{} pistas": "Playlist «{}»: {}/{} tracks",
         "{} pistas (todas ya estaban en la lista)": "{} tracks (all were already in the list)",
         "<span size='small' foreground='#888888'>{} álbum(es) · {} canciones</span>": "<span size='small' foreground='#888888'>{} album(s) · {} songs</span>",
-        
-        "Selecciona el disco físico del iPod (¡ten cuidado de no elegir tu disco duro!):": "Select the iPod physical disk (be careful not to choose your hard drive!):",
-        "Selecciona el modelo de tu iPod:": "Select your iPod model:",
 
         # === Tercera pasada (f-strings y cabeceras) ===
         "Reproduciendo: {} — {}": "Playing: {} — {}",
         "Reproduciendo: {}": "Playing: {}",
-        
-        "Artistas": "Artists",
-        "Canciones": "Songs",
-        "Título": "Title",
-        "Artista": "Artist",
-        "Álbum": "Album",
-        "Autor": "Author",
-        "Episodio": "Episode",
-        "Fecha": "Date",
-        "Estado": "Status",
 
         # === Quinta pasada (iPod y Podcasts) ===
         "{} canciones · {} listas": "{} songs · {} playlists",
         "{} GB usados · {} GB libres\nTotal: {} GB": "{} GB used · {} GB free\nTotal: {} GB",
         "<b>Conectado</b>": "<b>Connected</b>",
-        
         "Iniciando restauración ({})…": "Starting restore ({})...",
 
         # === Sexta pasada (restauración) ===
@@ -423,14 +433,12 @@ TRANSLATIONS = {
         "📌 NOTA IMPORTANTE: Tu iPod debe estar en 'Modo Disco'.": "📌 IMPORTANT NOTE: Your iPod must be in 'Disk Mode'.",
         "⚠️ ATENCIÓN (Requiere FireWire):": "⚠️ WARNING (Requires FireWire):",
         "Por diseño del hardware, esta generación de iPod requiere un cargador Firewire para completar el proceso de restauración de firmware. Procede sólo si cuentas con uno, de lo contrario el iPod quedará en modo de recuperación al desconectarlo.": "By hardware design, this iPod generation requires a FireWire charger to complete the firmware restore process. Proceed only if you have one, otherwise the iPod will be left in recovery mode when you disconnect it.",
-
         "⚠️ ADVERTENCIA: RESTAURACIÓN COMPLETA ({})": "⚠️ WARNING: FULL RESTORE ({})",
 
         # === Séptima pasada (sync selectiva) ===
         "Seleccionado: {} canciones, {} listas, {} podcasts": "Selected: {} songs, {} playlists, {} podcasts",
         "iPod: {} GB usados / {} GB libres. ": "iPod: {} GB used / {} GB free. ",
         "Selección: {} GB.": "Selection: {} GB.",
-        "Sincronizar selección": "Sync selection",
 
         # === Novena pasada (ventanas info) ===
         "{} archivo(s) no se pudieron mover a la papelera": "{} file(s) could not be moved to the trash",
@@ -508,7 +516,6 @@ TRANSLATIONS = {
         "Error al sincronizar: {}": "Error syncing: {}",
         "Error leyendo iPod: {}": "Error reading iPod: {}",
         "Error al hacer backup: {}. Abortando.": "Error making backup: {}. Aborting.",
-        "Error backup: {}": "Backup error: {}",
         "Error al inicializar: {}": "Error initializing: {}",
         "iPod inicializado. Releyendo…": "iPod initialized. Re-reading...",
         "Inicializando iPod…": "Initializing iPod...",
@@ -519,6 +526,85 @@ TRANSLATIONS = {
         "Se elimina solo la lista. Las canciones permanecen en tu biblioteca.": "Only the playlist is deleted. Songs remain in your library.",
         "Las canciones desaparecerán de la biblioteca y de todas las listas.\nLos archivos de audio se enviarán a la papelera del sistema, por lo que podrás recuperarlos si te equivocas.": "Songs will disappear from the library and from all playlists.\nAudio files will be sent to the system trash, so you can recover them if you made a mistake.",
         "El iPod se ha restaurado, pero su base de datos está vacía.\n¿Deseas inicializarlo ahora para poder añadir música?": "The iPod has been restored, but its database is empty.\nDo you want to initialize it now to add music?",
+
+        # ============================================================
+        # === ADICIONES: cadenas que estaban hardcodeadas sin traducir ===
+        # ============================================================
+
+        # Metadata MPRIS
+        "Ninguna canción": "Nothing playing",
+
+        # Tooltip del botón Importar de la sidebar
+        "Importar .pls, .m3u o .m3u8": "Import .pls, .m3u or .m3u8",
+
+        # Mensajes de sincronización con iPod (por si convertís los f-strings a _f)
+        "Error backup: {}. Abortando.": "Backup error: {}. Aborting.",
+        "Aviso: {} canciones no se pudieron identificar tras la copia. Sincronizando solo las {} encontradas.": "Warning: {} songs could not be identified after the copy. Syncing only the {} found.",
+        "Todas las canciones identificadas. Sincronizando «{}» ({} pistas)…": "All songs identified. Syncing «{}» ({} tracks)...",
+        "Sincronizando «{}» al iPod ({} pistas)…": "Syncing «{}» to iPod ({} tracks)...",
+
+        # === Manual de usuario completo ===
+        (
+            "¡Bienvenido a TunePod!\n\n"
+            "TunePod es tu centro de música y iPod para Linux. Aquí tienes una guía rápida de todo lo que puedes hacer:\n\n"
+            "=== BIBLIOTECA DE MÚSICA ===\n"
+            "• Añadir música: Usa el botón 'Agregar música' para importar archivos individuales o carpetas enteras.\n"
+            "• Organización: Explora tu música por Artistas, Álbumes o Canciones.\n"
+            "• Listas de reproducción: Crea listas manuales o listas 'inteligentes' basadas en reglas (ej. valoración > 4 estrellas).\n"
+            "• Búsqueda: Usa la barra superior para encontrar canciones al instante.\n\n"
+            "=== REPRODUCCIÓN ===\n"
+            "• Controles: Play/Pausa, Siguiente/Anterior, Aleatorio y Repetir.\n"
+            "• Cola de reproducción: Añade canciones a la cola para escucharlas después.\n"
+            "• Letras: Pulsa 'Mostrar letra' para buscar la letra de la canción actual en internet.\n"
+            "• Notificaciones: Recibirás notificaciones de escritorio con la carátula al cambiar de canción.\n\n"
+            "=== METADATOS Y CARÁTULAS ===\n"
+            "• Edición: Haz clic derecho en una canción o álbum y selecciona 'Información' para editar título, artista, etc.\n"
+            "• Buscar carátulas: Usa el botón 'Buscar carátula' para descargar arte desde iTunes o Deezer.\n"
+            "• Aplicar a todo el álbum: Al editar un álbum, puedes aplicar los cambios a todas sus canciones de golpe.\n\n"
+            "=== GESTIÓN DEL IPOD ===\n"
+            "• Conexión: Conecta tu iPod por USB y TunePod lo detectará automáticamente.\n"
+            "• Sincronización: Usa 'Sincronización global' para mantener tu iPod idéntico a tu PC, o 'Sincronización selectiva' para elegir qué enviar.\n"
+            "• Exploración: Haz clic en 'Ver contenido' para examinar los archivos que ya están en el iPod.\n"
+            "• Copiar al PC: Puedes extraer música de tu iPod a tu computadora.\n"
+            "• Restaurar: Si tu iPod falla, usa 'Restaurar Firmware' (requiere poner el ipod en modo disco, para los modelos de primera a cuarta generación, incluyendo iPod Photo, se requiere un cargador firewire, ).\n\n"
+            "=== PODCASTS ===\n"
+            "• Descubrir: Busca podcasts por nombre en la pestaña Podcasts.\n"
+            "• Suscripciones: Suscríbete y descarga episodios con un solo clic.\n"
+            "• Enviar al iPod: Los episodios descargados se pueden transferir directamente a tu iPod.\n\n"
+            "=== PERSONALIZACIÓN ===\n"
+            "• Modo oscuro: Usa el botón de la luna en la barra superior.\n"
+            "• Actualizaciones: Usa el menú (☰) para comprobar si hay nuevas versiones de TunePod.\n"
+        ): (
+            "Welcome to TunePod!\n\n"
+            "TunePod is your music and iPod hub for Linux. Here is a quick guide to everything you can do:\n\n"
+            "=== MUSIC LIBRARY ===\n"
+            "• Adding music: Use the 'Add music' button to import individual files or entire folders.\n"
+            "• Organization: Browse your music by Artists, Albums, or Songs.\n"
+            "• Playlists: Create manual playlists or rule-based 'smart' playlists (e.g. rating > 4 stars).\n"
+            "• Search: Use the top bar to find songs instantly.\n\n"
+            "=== PLAYBACK ===\n"
+            "• Controls: Play/Pause, Next/Previous, Shuffle, and Repeat.\n"
+            "• Playback queue: Add songs to the queue to listen to them later.\n"
+            "• Lyrics: Click 'Show lyrics' to search for the current song's lyrics online.\n"
+            "• Notifications: You'll receive desktop notifications with cover art when the song changes.\n\n"
+            "=== METADATA AND COVER ART ===\n"
+            "• Editing: Right-click on a song or album and select 'Information' to edit title, artist, etc.\n"
+            "• Search cover art: Use the 'Search cover art' button to download art from iTunes or Deezer.\n"
+            "• Apply to entire album: When editing an album, you can apply changes to all its songs at once.\n\n"
+            "=== IPOD MANAGEMENT ===\n"
+            "• Connection: Connect your iPod via USB and TunePod will detect it automatically.\n"
+            "• Sync: Use 'Global sync' to keep your iPod identical to your PC, or 'Selective sync' to choose what to send.\n"
+            "• Browsing: Click 'View content' to inspect files already on the iPod.\n"
+            "• Copy to PC: You can extract music from your iPod to your computer.\n"
+            "• Restore: If your iPod fails, use 'Restore Firmware' (requires putting the iPod in disk mode; for first through fourth generation models, including iPod Photo, a FireWire charger is required).\n\n"
+            "=== PODCASTS ===\n"
+            "• Discover: Search for podcasts by name in the Podcasts tab.\n"
+            "• Subscriptions: Subscribe and download episodes with a single click.\n"
+            "• Send to iPod: Downloaded episodes can be transferred directly to your iPod.\n\n"
+            "=== CUSTOMIZATION ===\n"
+            "• Dark mode: Use the moon button in the top bar.\n"
+            "• Updates: Use the menu (☰) to check for new versions of TunePod.\n"
+        ),
     },
     "es": {}
 }
