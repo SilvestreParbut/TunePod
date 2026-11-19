@@ -6126,7 +6126,7 @@ class PlaylistWindow(Gtk.Window):
         self.download_box.show_all()
         self.download_bar.set_fraction(0.0)
         remaining = len(self.download_queue) + 1
-        Reemplaza por: self.download_bar.set_text(_f("En cola: {} restante(s). Descargando: {}", remaining, item['title'][:50]))
+        self.download_bar.set_text(_f("En cola: {} restante(s). Descargando: {}", remaining, item['title'][:50]))
         model.set_value(it, 3, _("Iniciando…"))
         model.set_value(it, 4, 0)
         model.set_value(it, 6, True)
@@ -6946,7 +6946,7 @@ class PlaylistWindow(Gtk.Window):
             self.ipod_podcasts_store.append([
                 t.get("artist", "") or _("(sin artista)"),
                 t.get("album", "") or _("(sin álbum)"),
-                t.get("title", "") or _("(sin título)", dur_str,
+                t.get("title", "") or _("(sin título)"), dur_str,
             ])
         # Poblar el árbol de Artistas
         self.ipod_artists_store.clear()

@@ -6946,7 +6946,7 @@ class PlaylistWindow(Gtk.Window):
             self.ipod_podcasts_store.append([
                 t.get("artist", "") or _("(sin artista)"),
                 t.get("album", "") or _("(sin álbum)"),
-                t.get("title", "") or _("(sin título)", dur_str,
+                t.get("title", "") or _("(sin título)"), dur_str,
             ])
         # Poblar el árbol de Artistas
         self.ipod_artists_store.clear()
