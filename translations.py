@@ -399,6 +399,9 @@ TRANSLATIONS = {
         "«{}» sincronizada al iPod ({} pistas). Backup: {}": "«{}» synced to iPod ({} tracks). Backup: {}",
         "Metadatos guardados, pero no se pudieron escribir los tags en: {}": "Metadata saved, but could not write tags to: {}",
         "Álbum actualizado en {} canciones, pero falló en: {}": "Album updated on {} songs, but failed on: {}",
+        "Información de {} aplicada. Revisa y haz clic en Guardar.": "Information from {} applied. Review and click Save.",
+        "Carátula copiada desde {}": "Cover copied from {}",
+        "No se encontraron carátulas ({})": "No cover art found ({})",
 
         # === Faltantes detectadas en las capturas ===
         "Mostrando todos los álbumes": "Showing all albums",
@@ -415,6 +418,51 @@ TRANSLATIONS = {
         "Lista «{}»: {}/{} pistas": "Playlist «{}»: {}/{} tracks",
         "{} pistas (todas ya estaban en la lista)": "{} tracks (all were already in the list)",
         "<span size='small' foreground='#888888'>{} álbum(es) · {} canciones</span>": "<span size='small' foreground='#888888'>{} album(s) · {} songs</span>",
+
+        # === Faltantes bloque 5001-6000 ===
+        "Importando 0/{}": "Importing 0/{}",
+        " (saltando {} ya importadas)": " (skipping {} already imported)",
+        "{} episodio(s) descargado(s). Pulsa 'Actualizar' para buscar nuevos en línea.": "{} downloaded episode(s). Press 'Refresh' to look for new ones online.",
+        "No hay episodios descargados. Pulsa 'Actualizar' para buscarlos en línea.": "No downloaded episodes. Press 'Refresh' to look for them online.",
+        "Buscando episodios nuevos en línea… (los descargados ya se muestran)": "Looking for new episodes online... (downloaded ones are already shown)",
+        "Sin conexión o feed inaccesible. Mostrando {} episodio(s) descargado(s) localmente.": "No connection or feed unreachable. Showing {} locally downloaded episode(s).",
+
+        # === Faltantes bloque 6001-7000 ===
+        "[Podcast] {}": "[Podcast] {}",
+        "Podcast": "Podcast",
+        ", {} ya descargados": ", {} already downloaded",
+        "Desconocido": "Unknown",
+        "iPod 1ª Generación": "iPod 1st Generation",
+        "iPod 2ª Generación": "iPod 2nd Generation",
+        "iPod 3ª Generación": "iPod 3rd Generation",
+        "iPod 4ª Generación (Monocromático)": "iPod 4th Generation (Monochrome)",
+        "iPod Photo (4ª Gen Color)": "iPod Photo (4th Gen Color)",
+        "iPod Mini 1ª Gen": "iPod Mini 1st Gen",
+        "iPod Mini 2ª Gen": "iPod Mini 2nd Gen",
+        "Falta el archivo de firmware para {}.": "Missing firmware file for {}.",
+        "El programa esperaba encontrar:\n{}": "The program expected to find:\n{}",
+        "[Maestra] {}": "[Master] {}",
+        "[Smart] {}": "[Smart] {}",
+
+        # === Faltantes bloque 7001-8000 ===
+        "iPod detectado en {}, leyendo…": "iPod detected at {}, reading...",
+        "Artista Desconocido": "Unknown Artist",
+        "Álbum Desconocido": "Unknown Album",
+        "Pista": "Track",
+        "Convirtiendo {} archivos a ALAC…": "Converting {} files to ALAC...",
+
+        # === Faltantes bloque 8001-9000 ===
+        "¿Eliminarlos PERMANENTEMENTE del disco?\n\nSi eliges 'No', desaparecerán de la biblioteca de la aplicación pero los archivos seguirán existiendo en el disco.": "Delete them PERMANENTLY from disk?\n\nIf you choose 'No', they will disappear from the application's library but the files will still exist on disk.",
+        "{} archivo(s) siguen en disco": "{} file(s) still on disk",
+        "{} archivo(s) eliminados permanentemente": "{} file(s) permanently deleted",
+        "Error Sincronizando al iPod: {}": "Error syncing to iPod: {}",
+        "Error releyendo iPod: {}": "Error re-reading iPod: {}",
+        "Error eliminando podcasts: {}": "Error deleting podcasts: {}",
+        "<span foreground='red'><b>¡No cabe!</b> Se necesitan {:.2f} GB, hay {:.2f} GB libres.</span>": "<span foreground='red'><b>Doesn't fit!</b> {:.2f} GB needed, {:.2f} GB free.</span>",
+
+        # === Faltantes bloque 9001-final ===
+        "Enviando: {}": "Sending: {}",
+        "Error al enviar al iPod: {}": "Error sending to iPod: {}",
 
         # === Tercera pasada (f-strings y cabeceras) ===
         "Reproduciendo: {} — {}": "Playing: {} — {}",
@@ -503,7 +551,7 @@ TRANSLATIONS = {
         "Actualizando orden de {} podcasts…": "Updating order of {} podcasts...",
         "Sincronizando: {}": "Syncing: {}",
         "<b>{}</b> resultados en {}. Elige una carátula:": "<b>{}</b> results on {}. Choose a cover:",
-        " ({err} errores)": " ({err} errors)",
+        " ({} errores)": " ({} errors)",
         "Buscando «{} - {}» en la web…": "Searching «{} - {}» on the web...",
         "Mostrando discos de: {}": "Showing discs by: {}",
         "Expulsando iPod…": "Ejecting iPod...",
