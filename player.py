@@ -38,7 +38,7 @@ import ipod
 import ipod_write
 import ipod_sync
 import ipod_copy
-APP_VERSION = "1.1.3"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
+APP_VERSION = "1.1.4"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
 Gst.init(None)
 try:
     Notify.init("TunePod")
@@ -1109,7 +1109,7 @@ class PlaylistWindow(Gtk.Window):
         """Muestra la ventana Acerca de."""
         dialog = Gtk.AboutDialog(transient_for=self, modal=True)
         dialog.set_program_name("TunePod")
-        dialog.set_version("1.1.3") # <-- Puedes cambiar esto con cada release
+        dialog.set_version("1.1.4") # <-- Puedes cambiar esto con cada release
         dialog.set_comments(_("Reproductor de música y gestor de iPod para Linux"))
         dialog.set_license_type(Gtk.License.GPL_3_0)
         dialog.set_website("https://github.com/SilvestreParbut/TunePod")
@@ -1452,8 +1452,14 @@ class PlaylistWindow(Gtk.Window):
     def play_uris(self, uris, start_idx=0):
         if not uris or start_idx >= len(uris):
             return
+
         self.playback_context = list(uris)
         self.play_queue = list(uris[start_idx+1:])
+
+        # Reiniciar el estado aleatorio para esta nueva selección
+        self.shuffle_history = []
+        self.shuffle_pool = []
+
         self._refresh_queue_view()
         self.play_uri(uris[start_idx])
 
@@ -4839,9 +4845,16 @@ class PlaylistWindow(Gtk.Window):
         return False
 
     def on_album_track_activated(self, tree, path, column):
-        it = self.album_tracks_store.get_iter(path)
-        uri = self.album_tracks_store.get_value(it, 0)
-        self.play_uri(uri)
+        # Obtener todas las canciones del álbum en el orden mostrado
+        uris = [
+            row[0] for row in self.album_tracks_store
+        ]
+
+        # Obtener la posición de la canción seleccionada
+        start_idx = path.get_indices()[0]
+
+        # Reproducir desde esa canción y preparar las siguientes
+        self.play_uris(uris, start_idx)
 
     def _highlight_playing_in_album_detail(self):
         """Marca con la selección del sistema la fila de la canción que está sonando
@@ -5473,7 +5486,7 @@ class PlaylistWindow(Gtk.Window):
                 return self._prev_shuffle()
             return False
 
-        uris = self._visible_uris()
+        uris = self.playback_context if self.playback_context else self._visible_uris()
         if not uris:
             return False
         if self.current_uri not in uris:
