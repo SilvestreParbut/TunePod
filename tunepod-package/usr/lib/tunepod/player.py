@@ -38,7 +38,7 @@ import ipod
 import ipod_write
 import ipod_sync
 import ipod_copy
-APP_VERSION = "1.1.4"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
+APP_VERSION = "1.1.5"  # <--- ACTUALIZAR CON CADA LANZAMIENTO
 Gst.init(None)
 try:
     Notify.init("TunePod")
@@ -1109,7 +1109,7 @@ class PlaylistWindow(Gtk.Window):
         """Muestra la ventana Acerca de."""
         dialog = Gtk.AboutDialog(transient_for=self, modal=True)
         dialog.set_program_name("TunePod")
-        dialog.set_version("1.1.4") # <-- Puedes cambiar esto con cada release
+        dialog.set_version("1.1.5") # <-- Puedes cambiar esto con cada release
         dialog.set_comments(_("Reproductor de música y gestor de iPod para Linux"))
         dialog.set_license_type(Gtk.License.GPL_3_0)
         dialog.set_website("https://github.com/SilvestreParbut/TunePod")
@@ -6789,6 +6789,7 @@ class PlaylistWindow(Gtk.Window):
 
     def on_ipod_artist_tree_button_press(self, widget, event):
         if event.button == 3:
+            # Clic derecho: menú contextual
             path_info = widget.get_path_at_pos(int(event.x), int(event.y))
             if path_info is not None:
                 path = path_info[0]
@@ -6798,8 +6799,25 @@ class PlaylistWindow(Gtk.Window):
                     sel.select_path(path)
             self.ipod_context_menu.popup_at_pointer(event)
             return True
+            
+        elif event.button == 1:
+            # Clic izquierdo: desplegar artistas y álbumes
+            path_info = widget.get_path_at_pos(int(event.x), int(event.y))
+            if path_info is not None:
+                path, column, cell_x, cell_y = path_info
+                # Ignorar si el clic es en la flechita (primeros 20 píxeles)
+                if cell_x > 20:
+                    model = widget.get_model()
+                    it = model.get_iter(path)
+                    kind = model.get_value(it, 2) # 2 es el tipo (artist, album, track)
+                    if kind in ("artist", "album"):
+                        if widget.row_expanded(path):
+                            widget.collapse_row(path)
+                        else:
+                            widget.expand_row(path, False)
+                        widget.get_selection().select_path(path)
+                        return True
         return False
-
 
     def _build_ipod_playlists_page(self):
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
@@ -6952,23 +6970,29 @@ class PlaylistWindow(Gtk.Window):
             if q and (q not in title.lower() and q not in artist.lower() and q not in album.lower()):
                 continue
 
-            if not (int(t.get("mediatype", 0)) & MEDIATYPE_PODCAST):
+            # Arreglo: Evitar crash si 'mediatype' viene vacío
+            mediatype = t.get("mediatype") or 0
+            if not (int(mediatype) & MEDIATYPE_PODCAST):
                 continue
-            dur_ms = t.get("duration_ms", 0)
+            
+            dur_ms = t.get("duration_ms") or 0
             dur_str = f"{dur_ms // 60000}:{(dur_ms // 1000) % 60:02d}"
             self.ipod_podcasts_store.append([
-                t.get("artist", "") or _("(sin artista)"),
-                t.get("album", "") or _("(sin álbum)"),
-                t.get("title", "") or _("(sin título)"), dur_str,
+                t.get("artist", "") or "(sin artista)",
+                t.get("album", "") or "(sin álbum)",
+                t.get("title", "") or "(sin título)", dur_str,
+                int(t.get("id") or 0)
             ])
+            
         # Poblar el árbol de Artistas
         self.ipod_artists_store.clear()
         groups = {}
         for t in self.ipod_data.get("tracks", []):
-            title = t.get("title", "") or _("(sin título)")
-            artist = t.get("artist", "") or _("(sin artista)")
-            album = t.get("album", "") or _("(sin álbum)")
-            track_id = int(t.get("id", 0))
+            title = t.get("title", "") or "(sin título)"
+            artist = t.get("artist", "") or "(sin artista)"
+            album = t.get("album", "") or "(sin álbum)"
+            # Arreglo: Evitar crash si 'id' viene vacío
+            track_id = int(t.get("id") or 0)
 
             if q and (q not in title.lower() and q not in artist.lower() and q not in album.lower()):
                 continue
